@@ -261,10 +261,22 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function renderDossier(data) {
+    state.currentAuditData = data;
     const meta = data.meta || {};
     const role = meta.role || 'Batter';
     const isBowler = (role === 'Bowler');
-    const isAllRounder = (role === 'All-Rounder');
+    const hasBatting = data.batting_stats && ((data.batting_stats.total_balls || 0) > 0 || (data.batting_stats.total_runs || 0) > 0);
+    const hasBowling = data.bowling_stats && ((data.bowling_stats.total_balls || 0) > 0 || (data.bowling_stats.total_wickets || 0) > 0);
+    const isAllRounder = (role === 'All-Rounder') || (hasBatting && hasBowling && ((data.bowling_stats && data.bowling_stats.total_overs >= 5) || false));
+
+    // Determine active splitsRole
+    if (role === 'Bowler') {
+      state.splitsRole = 'bowl';
+    } else if (role === 'Batter' && !isAllRounder) {
+      state.splitsRole = 'bat';
+    } else if (isAllRounder) {
+      if (!state.splitsRole) state.splitsRole = 'bat';
+    }
 
     // 1. Player Bio Banner
     const resolvedFullName = data.full_name || data.player_query;
@@ -282,23 +294,55 @@ document.addEventListener('DOMContentLoaded', () => {
     const roleEl = document.getElementById('bioRole');
     roleEl.textContent = role;
     if (role === 'Bowler') roleEl.style.borderColor = 'rgba(16, 185, 129, 0.4)';
-    else if (role === 'All-Rounder') roleEl.style.borderColor = 'rgba(129, 140, 248, 0.4)';
+    else if (role === 'All-Rounder' || isAllRounder) roleEl.style.borderColor = 'rgba(129, 140, 248, 0.4)';
+    else roleEl.style.borderColor = 'rgba(56, 189, 248, 0.4)';
 
-    document.getElementById('bioStance').textContent = meta.hand || (isBowler ? 'Right-Arm' : 'RHB');
-    
     const tier = meta.market_price >= 10.0 ? 'Marquee International' : (meta.market_price >= 2.0 ? 'Franchise Core' : 'Domestic Prospect');
     document.getElementById('bioTier').textContent = tier;
     document.getElementById('bioProfile').textContent = meta.public_label || `${role} active across premier T20 competitions.`;
 
-    // Hero metrics
-    if (isBowler) {
+    // 2. Render all discipline-specific sections (Hero KPIs, Phase Efficiency, Antagonist, Alternatives, Footprint)
+    renderDossierDiscipline(data);
+
+    // 3. Interactive Tactical Matchup Splits Card
+    renderTacticalSplitsCard(data);
+  }
+
+  function renderDossierDiscipline(data) {
+    if (!data) return;
+    const meta = data.meta || {};
+    const role = meta.role || 'Batter';
+    const isBowlerMode = (state.splitsRole === 'bowl') || (role === 'Bowler' && state.splitsRole !== 'bat');
+
+    // Hero KPI metrics & stance
+    renderHeroMetrics(data, isBowlerMode);
+
+    // Column 1: Phase Efficiency Breakdown
+    renderPhaseEfficiency(data, isBowlerMode);
+
+    // Column 2: Antagonist / Kryptonite / Punishers
+    renderAntagonistSection(data, isBowlerMode);
+
+    // Column 3: Moneyball Alternatives
+    renderMoneyballSection(data, isBowlerMode);
+
+    // Global Tournament Footprint Table
+    renderFootprintTable(data, isBowlerMode);
+  }
+
+  function renderHeroMetrics(data, isBowlerMode) {
+    const meta = data.meta || {};
+    const stanceEl = document.getElementById('bioStance');
+
+    if (isBowlerMode) {
       const bStats = data.bowling_stats || {};
-      document.getElementById('bioHeroMetric1').textContent = bStats.total_wickets || 0;
+      document.getElementById('bioHeroMetric1').textContent = (bStats.total_wickets || 0).toLocaleString();
       document.getElementById('bioHeroLabel1').textContent = 'Career Wickets';
       document.getElementById('bioHeroMetric2').textContent = (bStats.overall_econ || 0).toFixed(2);
       document.getElementById('bioHeroLabel2').textContent = 'Economy Rate';
-      document.getElementById('bioHeroMetric3').textContent = `${bStats.total_overs || 0} ov`;
+      document.getElementById('bioHeroMetric3').textContent = `${(bStats.total_overs || 0).toFixed(1)} ov`;
       document.getElementById('bioHeroLabel3').textContent = 'Overs Bowled';
+      if (stanceEl) stanceEl.textContent = meta.bowling_arm || meta.hand || 'Right-Arm';
     } else {
       const batStats = data.batting_stats || {};
       document.getElementById('bioHeroMetric1').textContent = (batStats.total_runs || 0).toLocaleString();
@@ -307,40 +351,31 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('bioHeroLabel2').textContent = 'Strike Rate';
       document.getElementById('bioHeroMetric3').textContent = (batStats.overall_avg || 0).toFixed(1);
       document.getElementById('bioHeroLabel3').textContent = 'Batting Average';
+      if (stanceEl) stanceEl.textContent = meta.hand || 'RHB';
     }
-
-    // 2. Column 1: Phase Efficiency Breakdown
-    renderPhaseEfficiency(data);
-
-    // 3. Column 2: Antagonist / Kryptonite
-    renderAntagonistSection(data);
-
-    // 4. Column 3: Moneyball Alternatives
-    renderMoneyballSection(data);
-
-    // 5. Global Tournament Footprint Table
-    renderFootprintTable(data);
-
-    // 6. Interactive Tactical Matchup Splits
-    renderTacticalSplitsCard(data);
   }
 
-  function renderPhaseEfficiency(data) {
+  function renderPhaseEfficiency(data, isBowlerMode) {
     const container = document.getElementById('phaseEfficiencyBody');
-    const role = data.meta.role;
-    const isBowler = (role === 'Bowler');
+    const titleEl = document.getElementById('phaseEfficiencyCardTitle');
+    if (!container) return;
 
-    if (isBowler) {
+    if (titleEl) {
+      titleEl.textContent = isBowlerMode ? 'Career Phase Efficiency (Bowling)' : 'Career Phase Efficiency (Batting)';
+    }
+
+    const phases = ['Powerplay', 'Middle', 'Death'];
+
+    if (isBowlerMode) {
       const b = data.bowling_stats || { phases: {} };
-      const phases = ['Powerplay', 'Middle', 'Death'];
       container.innerHTML = phases.map(ph => {
-        const st = b.phases[ph] || { econ: 0, dot_pct: 0, wickets: 0 };
+        const st = (b.phases && b.phases[ph]) || { econ: 0, dot_pct: 0, wickets: 0 };
         const meterPct = Math.min(100, Math.max(10, (12 - st.econ) * 10)); // Higher meter = tighter economy
         return `
           <div class="phase-stat-row">
             <div class="phase-label-group">
               <span class="phase-name">${ph} (Overs ${ph === 'Powerplay' ? '1–6' : (ph === 'Middle' ? '7–15' : '16–20')})</span>
-              <span class="phase-metrics">Econ: <strong>${st.econ.toFixed(2)}</strong> • Dots: <strong>${st.dot_pct.toFixed(1)}%</strong> • Wkts: <strong>${st.wickets}</strong></span>
+              <span class="phase-metrics">Econ: <strong>${(st.econ || 0).toFixed(2)}</strong> • Dots: <strong>${(st.dot_pct || 0).toFixed(1)}%</strong> • Wkts: <strong>${st.wickets || 0}</strong></span>
             </div>
             <div class="meter-track">
               <div class="meter-fill green" style="width: ${meterPct}%"></div>
@@ -350,15 +385,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }).join('');
     } else {
       const bat = data.batting_stats || { phases: {} };
-      const phases = ['Powerplay', 'Middle', 'Death'];
       container.innerHTML = phases.map(ph => {
-        const st = bat.phases[ph] || { sr: 0, dot_pct: 0, runs: 0, bnd_pct: 0 };
+        const st = (bat.phases && bat.phases[ph]) || { sr: 0, dot_pct: 0, runs: 0, bnd_pct: 0 };
         const meterPct = Math.min(100, Math.max(10, (st.sr / 200) * 100));
         return `
           <div class="phase-stat-row">
             <div class="phase-label-group">
               <span class="phase-name">${ph} (Overs ${ph === 'Powerplay' ? '1–6' : (ph === 'Middle' ? '7–15' : '16–20')})</span>
-              <span class="phase-metrics">SR: <strong>${st.sr.toFixed(1)}</strong> • Dots: <strong>${st.dot_pct.toFixed(1)}%</strong> • 4/6s: <strong>${st.bnd_pct.toFixed(1)}%</strong></span>
+              <span class="phase-metrics">SR: <strong>${(st.sr || 0).toFixed(1)}</strong> • Dots: <strong>${(st.dot_pct || 0).toFixed(1)}%</strong> • 4/6s: <strong>${(st.bnd_pct || 0).toFixed(1)}%</strong></span>
             </div>
             <div class="meter-track">
               <div class="meter-fill blue" style="width: ${meterPct}%"></div>
@@ -369,16 +403,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function renderAntagonistSection(data) {
+  function renderAntagonistSection(data, isBowlerMode) {
     const container = document.getElementById('antagonistBody');
     const titleEl = document.getElementById('antagonistCardTitle');
-    const role = data.meta.role;
-    const isBowler = (role === 'Bowler');
+    if (!container) return;
 
     let html = '';
 
-    if (!isBowler) {
-      titleEl.textContent = 'Primary Kryptonite & Top 3 Nemeses';
+    if (!isBowlerMode) {
+      if (titleEl) titleEl.textContent = 'Primary Kryptonite & Top 3 Nemeses';
       const krypto = data.kryptonite;
       if (krypto && krypto.primary_kryptonite) {
         html += `
@@ -401,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
               <div class="antagonist-stats">
                 <div>${n.dismissals} OUTS</div>
-                <div class="antagonist-sub">${n.sr.toFixed(1)} SR • ${n.dot_pct.toFixed(1)}% Dots</div>
+                <div class="antagonist-sub">${(n.sr || 0).toFixed(1)} SR • ${(n.dot_pct || 0).toFixed(1)}% Dots</div>
               </div>
             </div>
           `;
@@ -410,19 +443,26 @@ document.addEventListener('DOMContentLoaded', () => {
         html += '<div style="color:var(--text-secondary); font-size:0.85rem;">No severe nemesis bowlers recorded with 15+ balls.</div>';
       }
     } else {
-      titleEl.textContent = 'Top 3 Punisher Batters (Opponent Threats)';
+      if (titleEl) titleEl.textContent = 'Top 3 Punisher Batters (Opponent Threats)';
       const punishers = data.punishers || [];
       if (punishers.length > 0) {
+        const topP = punishers[0];
+        html += `
+          <div class="kryptonite-alert-box" style="border-left-color: var(--amber-gold); background: rgba(245, 158, 11, 0.08);">
+            <div class="kryptonite-title" style="color: var(--amber-gold);">PRIMARY PUNISHER: ${topP.batter_full || topP.striker}</div>
+            <div class="kryptonite-detail">Concedes ${(topP.sr || 0).toFixed(1)} SR • ${topP.runs} runs in ${topP.balls} balls (${topP.boundaries} Boundaries)</div>
+          </div>
+        `;
         html += '<div style="font-size:0.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; margin-bottom:8px;">Batters Who Attack This Bowler Most:</div>';
         punishers.forEach(p => {
           html += `
             <div class="antagonist-item">
               <div>
                 <div class="antagonist-name">${p.batter_full || p.striker} ${p.batter_full && p.batter_full !== p.striker ? `<span style="font-size:0.75rem; color:var(--text-muted); font-weight:400;">(${p.striker})</span>` : ''}</div>
-                <div class="antagonist-arch">${p.balls} balls faced • ${p.runs} runs hit</div>
+                <div class="antagonist-arch">${p.balls} balls faced • ${p.runs} runs conceded</div>
               </div>
               <div class="antagonist-stats">
-                <div style="color:var(--amber-gold);">${p.sr.toFixed(1)} SR</div>
+                <div style="color:var(--amber-gold); font-weight:700;">${(p.sr || 0).toFixed(1)} SR</div>
                 <div class="antagonist-sub">${p.boundaries} Boundaries • ${p.dismissals} Dismissals</div>
               </div>
             </div>
@@ -436,9 +476,18 @@ document.addEventListener('DOMContentLoaded', () => {
     container.innerHTML = html;
   }
 
-  function renderMoneyballSection(data) {
+  function renderMoneyballSection(data, isBowlerMode) {
     const container = document.getElementById('moneyballBody');
-    const altsData = data.alternatives;
+    const titleEl = document.getElementById('moneyballCardTitle');
+    if (!container) return;
+
+    if (titleEl) {
+      titleEl.textContent = isBowlerMode ? 'Domestic Tactical Alternatives: Bowling (SMAT)' : 'Domestic Tactical Alternatives: Batting (SMAT)';
+    }
+
+    const altsData = isBowlerMode 
+      ? (data.bowling_alternatives || data.alternatives)
+      : (data.batting_alternatives || data.alternatives);
 
     if (!altsData || !altsData.alts || altsData.alts.length === 0) {
       container.innerHTML = '<div style="color:var(--text-secondary); font-size:0.85rem; padding:10px 0;">No domestic replacement needed. Target player is already at domestic level or niche phase benchmark.</div>';
@@ -446,17 +495,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const t = altsData.target || {};
-    const phaseStr = (altsData.phase || 'Middle').toUpperCase();
+    const phaseStr = (altsData.phase || (isBowlerMode ? 'Death' : 'Middle')).toUpperCase();
+
+    const targetMetric = (t.econ !== undefined)
+      ? `${(t.econ || 0).toFixed(2)} Econ • ${(t.dot_pct || 0).toFixed(1)}% Dots (${t.b || 0} balls)`
+      : `${(t.sr || 0).toFixed(1)} SR • ${(t.dot_pct || 0).toFixed(1)}% Dots (${t.b || 0} balls)`;
 
     let html = `
       <div style="background:rgba(11, 15, 25, 0.7); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:10px 14px; margin-bottom:12px; font-size:0.8rem;">
         <span style="color:var(--text-muted); font-weight:700;">BENCHMARK TARGET (${phaseStr}):</span>
-        <strong style="color:var(--text-primary); margin-left:6px;">${t.sr ? `${t.sr.toFixed(1)} SR` : `${t.econ.toFixed(2)} Econ`} • ${t.dot_pct.toFixed(1)}% Dots (${t.b} balls)</strong>
+        <strong style="color:var(--text-primary); margin-left:6px;">${targetMetric}</strong>
       </div>
     `;
 
     altsData.alts.forEach(a => {
-      const metricStr = a.sr ? `${a.sr.toFixed(1)} SR • ${a.dot_pct.toFixed(1)}% Dots` : `${a.econ.toFixed(2)} Econ • ${a.dot_pct.toFixed(1)}% Dots`;
+      const metricStr = (a.econ !== undefined)
+        ? `${a.econ.toFixed(2)} Econ • ${(a.dot_pct || 0).toFixed(1)}% Dots`
+        : `${(a.sr || 0).toFixed(1)} SR • ${(a.dot_pct || 0).toFixed(1)}% Dots`;
       html += `
         <div class="alt-item">
           <div class="alt-header-row">
@@ -471,17 +526,30 @@ document.addEventListener('DOMContentLoaded', () => {
     container.innerHTML = html;
   }
 
-  function renderFootprintTable(data) {
+  function renderFootprintTable(data, isBowlerMode) {
     const tbody = document.getElementById('footprintTableBody');
     const countTag = document.getElementById('footprintCountTag');
-    const footprint = data.footprint || [];
-    const isBowler = (data.meta.role === 'Bowler');
+    const titleEl = document.getElementById('footprintCardTitle');
+    if (!tbody) return;
 
-    countTag.textContent = `${footprint.length} Competitions Covered`;
+    if (titleEl) {
+      titleEl.textContent = isBowlerMode ? 'Global Tournament Footprint (Bowling)' : 'Global Tournament Footprint (Batting)';
+    }
 
-    document.getElementById('thFootprintVolume').textContent = isBowler ? 'Overs' : 'Runs';
-    document.getElementById('thFootprintRate').textContent = isBowler ? 'Economy' : 'Strike Rate';
-    document.getElementById('thFootprintSec').textContent = isBowler ? 'Wickets' : 'Average';
+    const footprint = isBowlerMode 
+      ? (data.bowling_footprint || data.footprint || [])
+      : (data.batting_footprint || data.footprint || []);
+
+    if (countTag) {
+      countTag.textContent = `${footprint.length} Competitions Covered`;
+    }
+
+    const thVol = document.getElementById('thFootprintVolume');
+    const thRate = document.getElementById('thFootprintRate');
+    const thSec = document.getElementById('thFootprintSec');
+    if (thVol) thVol.textContent = isBowlerMode ? 'Overs' : 'Runs';
+    if (thRate) thRate.textContent = isBowlerMode ? 'Economy' : 'Strike Rate';
+    if (thSec) thSec.textContent = isBowlerMode ? 'Wickets' : 'Average';
 
     if (footprint.length === 0) {
       tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-secondary);">No multi-tournament footprint records available.</td></tr>';
@@ -489,9 +557,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     tbody.innerHTML = footprint.map(r => {
-      const volume = isBowler ? `${r.overs.toFixed(1)} ov` : Math.round(r.runs).toLocaleString();
-      const rate = isBowler ? r.econ.toFixed(2) : r.sr.toFixed(1);
-      const sec = isBowler ? r.wickets : r.avg.toFixed(1);
+      const volume = isBowlerMode ? `${(r.overs || (r.balls / 6.0)).toFixed(1)} ov` : Math.round(r.runs || 0).toLocaleString();
+      const rate = isBowlerMode ? (r.econ || 0).toFixed(2) : (r.sr || 0).toFixed(1);
+      const sec = isBowlerMode ? (r.wickets || 0) : (r.avg || 0).toFixed(1);
 
       return `
         <tr>
@@ -500,7 +568,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td>${volume}</td>
           <td><strong>${rate}</strong></td>
           <td>${sec}</td>
-          <td>${r.dot_pct.toFixed(1)}%</td>
+          <td>${(r.dot_pct || 0).toFixed(1)}%</td>
         </tr>
       `;
     }).join('');
@@ -515,8 +583,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderTacticalSplitsCard(auditData) {
     const role = (auditData.meta && auditData.meta.role) ? auditData.meta.role : 'Batter';
-    const isAllRounder = (role === 'All-Rounder');
     const isBowler = (role === 'Bowler');
+    const hasBatting = auditData.batting_stats && ((auditData.batting_stats.total_balls || 0) > 0 || (auditData.batting_stats.total_runs || 0) > 0);
+    const hasBowling = auditData.bowling_stats && ((auditData.bowling_stats.total_balls || 0) > 0 || (auditData.bowling_stats.total_wickets || 0) > 0);
+    const isAllRounder = (role === 'All-Rounder') || (hasBatting && hasBowling && ((auditData.bowling_stats && auditData.bowling_stats.total_overs >= 5) || false));
 
     if (isAllRounder) {
       if (splitsRoleToggle) splitsRoleToggle.style.display = 'inline-flex';
@@ -527,8 +597,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateSplitsRoleUI();
 
-    if (auditData.initial_splits) {
-      renderSplitsDashboard(auditData.initial_splits);
+    const initSp = auditData.initial_splits;
+    if (initSp && ((initSp.active_role === state.splitsRole) || (initSp.role === state.splitsRole) || (!initSp.active_role && !initSp.role && state.splitsRole === (isBowler ? 'bowl' : 'bat')))) {
+      renderSplitsDashboard(initSp);
     } else {
       fetchTacticalSplits();
     }
@@ -558,6 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
     splitsRoleBatBtn.addEventListener('click', () => {
       state.splitsRole = 'bat';
       updateSplitsRoleUI();
+      renderDossierDiscipline(state.currentAuditData);
       fetchTacticalSplits();
     });
   }
@@ -566,6 +638,7 @@ document.addEventListener('DOMContentLoaded', () => {
     splitsRoleBowlBtn.addEventListener('click', () => {
       state.splitsRole = 'bowl';
       updateSplitsRoleUI();
+      renderDossierDiscipline(state.currentAuditData);
       fetchTacticalSplits();
     });
   }

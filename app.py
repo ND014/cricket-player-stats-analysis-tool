@@ -291,9 +291,11 @@ def player_audit():
     
     is_bowler = (role == 'Bowler')
     is_all_rounder = (role == 'All-Rounder')
+    has_batting = role in ['Batter', 'All-Rounder'] or (len(df[df['striker'] == cric_name]) >= 15)
+    has_bowling = role in ['Bowler', 'All-Rounder'] or (len(df[df['bowler'] == cric_name]) >= 12)
     
     # 1. Batting Phase Stats
-    if role in ['Batter', 'All-Rounder']:
+    if has_batting:
         bat_stats = get_batter_phase_stats(cric_name, df)
         res['batting_stats'] = bat_stats
         
@@ -312,21 +314,21 @@ def player_audit():
         krypto = get_batter_kryptonite(cric_name, df)
         res['kryptonite'] = krypto
         
-        # Footprint
-        footprint = get_player_tournament_footprint(cric_name, df, is_bowler=False)
-        res['footprint'] = footprint.to_dict(orient='records') if footprint is not None else []
+        # Batting Footprint
+        bat_footprint = get_player_tournament_footprint(cric_name, df, is_bowler=False)
+        res['batting_footprint'] = bat_footprint.to_dict(orient='records') if bat_footprint is not None else []
         
-        # Domestic Alternatives
-        alts = find_cost_effective_alternatives(cric_name, role='Batter')
-        if alts and isinstance(alts, dict) and 'alts' in alts:
-            for a in alts['alts']:
+        # Batting Domestic Alternatives
+        bat_alts = find_cost_effective_alternatives(cric_name, role='Batter')
+        if bat_alts and isinstance(bat_alts, dict) and 'alts' in bat_alts:
+            for a in bat_alts['alts']:
                 if isinstance(a, dict):
                     a['full_name'] = get_player_full_name(a.get('player', ''))
                     a['display_name'] = get_player_display_name(a.get('player', ''))
-        res['alternatives'] = alts
+        res['batting_alternatives'] = bat_alts
         
     # 2. Bowling Phase Stats
-    if role in ['Bowler', 'All-Rounder']:
+    if has_bowling:
         bowl_stats = get_bowler_phase_stats(cric_name, df)
         res['bowling_stats'] = bowl_stats
         
@@ -343,23 +345,31 @@ def player_audit():
         else:
             res['punishers'] = []
         
-        # Footprint (if bowler)
-        if is_bowler:
-            footprint = get_player_tournament_footprint(cric_name, df, is_bowler=True)
-            res['footprint'] = footprint.to_dict(orient='records') if footprint is not None else []
+        # Bowling Footprint
+        bowl_footprint = get_player_tournament_footprint(cric_name, df, is_bowler=True)
+        res['bowling_footprint'] = bowl_footprint.to_dict(orient='records') if bowl_footprint is not None else []
             
-        # Domestic Alternatives
-        alts = find_cost_effective_alternatives(cric_name, role='Bowler')
-        if alts and isinstance(alts, dict) and 'alts' in alts:
-            for a in alts['alts']:
+        # Bowling Domestic Alternatives
+        bowl_alts = find_cost_effective_alternatives(cric_name, role='Bowler')
+        if bowl_alts and isinstance(bowl_alts, dict) and 'alts' in bowl_alts:
+            for a in bowl_alts['alts']:
                 if isinstance(a, dict):
                     a['full_name'] = get_player_full_name(a.get('player', ''))
                     a['display_name'] = get_player_display_name(a.get('player', ''))
-        res['alternatives'] = alts
+        res['bowling_alternatives'] = bowl_alts
+
+    # Default fallback / legacy fields for footprint and alternatives
+    if is_bowler:
+        res['footprint'] = res.get('bowling_footprint', [])
+        res['alternatives'] = res.get('bowling_alternatives')
+    else:
+        res['footprint'] = res.get('batting_footprint', [])
+        res['alternatives'] = res.get('batting_alternatives')
 
     # 3. Initial Tactical Matchup Splits
     try:
-        if role in ['Batter', 'All-Rounder']:
+        init_role = 'bowl' if role == 'Bowler' else 'bat'
+        if init_role == 'bat':
             init_sp = get_batter_matchup_splits(cric_name, tournament=tournament)
         else:
             init_sp = get_bowler_matchup_splits(cric_name, tournament=tournament)
@@ -371,6 +381,8 @@ def player_audit():
             buf.seek(0)
             init_sp['image_b64'] = base64.b64encode(buf.read()).decode('utf-8')
             plt.close('all')
+            init_sp['role'] = init_role
+            init_sp['active_role'] = init_role
             
         res['initial_splits'] = init_sp
     except Exception as e:
