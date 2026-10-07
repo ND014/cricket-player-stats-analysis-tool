@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Pro-Franchise T20 Cricket Matchup, Wagon Wheel & Skill Analytics Engine across 18 Global & Domestic Leagues (2.67M Deliveries).">
+  <title>Global T20 Matchup, Wagon Wheel & Skill Analytics Engine</title>
+  
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- Top App Navigation -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand-group">
+        <div class="brand-text">
+          <h1 class="brand-title">T20 MATCHUP & VALUE AUDIT</h1>
+          <p class="brand-subtitle">Pro-Franchise Skill Analytics • 18 Worldwide Competitions</p>
+        </div>
+      </div>
+      
+      <div class="header-meta-group">
+        <div class="live-pill">
+          <span class="pulse-dot"></span>
+          <span class="live-text">2,671,062 DELIVERIES INDEXED</span>
+        </div>
+        
+        <div class="tournament-select-wrapper">
+          <label for="globalTournamentSelect" class="sr-only">Select Tournament</label>
+          <select id="globalTournamentSelect" class="custom-select" title="Filter by Tournament">
+            <option value="ALL">All Global T20s (2.67M balls)</option>
+            <option value="IPL">Indian Premier League (IPL)</option>
+            <option value="SMAT">Syed Mushtaq Ali Trophy (SMAT)</option>
+            <option value="T20I">Men's T20 Internationals (T20I)</option>
+            <option value="T20_WORLD_CUP">ICC Men's T20 World Cup</option>
+            <option value="BBL">Big Bash League (BBL)</option>
+            <option value="PSL">Pakistan Super League (PSL)</option>
+            <option value="CPL">Caribbean Premier League (CPL)</option>
+            <option value="SA20">SA20 League</option>
+            <option value="CSA_T20">CSA T20 Challenge</option>
+            <option value="MSL">Mzansi Super League</option>
+            <option value="LPL">Lanka Premier League</option>
+            <option value="SL_CLUBS_T20">Sri Lanka Major Clubs</option>
+            <option value="BPL">Bangladesh Premier League</option>
+            <option value="SUPER_SMASH">Super Smash</option>
+            <option value="T20_BLAST">Vitality T20 Blast</option>
+            <option value="THE_HUNDRED">The Hundred</option>
+            <option value="MLC">Major League Cricket (MLC)</option>
+            <option value="ILT20">International League T20</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Omnisearch Hero Section (Player Chips Removed) -->
+  <section class="search-hero">
+    <div class="hero-container">
+      <div class="search-box-card">
+        <div class="search-input-group">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-muted); margin-right:12px; flex-shrink:0;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="playerSearchInput" class="search-input" placeholder="Search ANY player by full name or initials (e.g. David Miller, Tim David, Virat Kohli, Jasprit Bumrah)..." autocomplete="off">
+          <button id="searchClearBtn" class="clear-btn" style="display: none;">✕</button>
+        </div>
+        <div id="autocompleteDropdown" class="autocomplete-dropdown" style="display: none;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Tabs Navigation -->
+  <nav class="tabs-nav-bar">
+    <div class="tabs-container">
+      <button class="tab-btn active" data-tab="tab-dossier" id="tabBtnDossier">
+        Player Dossier & Audit
+      </button>
+      <button class="tab-btn" data-tab="tab-wagon" id="tabBtnWagon">
+        Batter Wagon Wheel
+      </button>
+      <button class="tab-btn" data-tab="tab-defensive" id="tabBtnDefensive">
+        Bowler Defensive Map
+      </button>
+      <button class="tab-btn" data-tab="tab-compare" id="tabBtnCompare">
+        Head-to-Head Duel & Compare
+      </button>
+      <button class="tab-btn" data-tab="tab-census" id="tabBtnCensus">
+        18-League Census
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Viewport -->
+  <main class="main-content-area">
+    <div class="content-container">
+
+      <!-- Loading Overlay -->
+      <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="spinner-ring"></div>
+        <p class="loading-text" id="loadingText">Processing 2.67M ball-by-ball deliveries...</p>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- TAB 1: PLAYER DOSSIER & AUDIT -->
+      <!-- ================================================================= -->
+      <section id="tab-dossier" class="tab-pane active">
+        <!-- Player Bio Header Banner -->
+        <div class="player-banner-card" id="playerBioBanner">
+          <div class="player-bio-left">
+            <div class="player-avatar-circle" id="playerAvatarInitials">VK</div>
+            <div class="player-bio-details">
+              <div class="player-title-row">
+                <h2 class="player-name" id="bioPlayerName">Virat Kohli</h2>
+                <span class="badge-role" id="bioRole">Batter</span>
+                <span class="badge-stance" id="bioStance">RHB</span>
+                <span class="badge-tier" id="bioTier">Marquee International</span>
+              </div>
+              <p class="player-profile-desc" id="bioProfile">Anchor / High-Impact Run Machine across all T20 cricket.</p>
+              <div class="player-cric-sub">Cricsheet Database ID: <strong id="bioCricName">V Kohli</strong> • Analyzed Deliveries: <strong id="bioDeliveries">10,986</strong></div>
+            </div>
+          </div>
+          <div class="player-bio-right">
+            <div class="quick-metric-box">
+              <span class="metric-val" id="bioHeroMetric1">14,398</span>
+              <span class="metric-lbl" id="bioHeroLabel1">Career Runs</span>
+            </div>
+            <div class="quick-metric-box">
+              <span class="metric-val" id="bioHeroMetric2">131.1</span>
+              <span class="metric-lbl" id="bioHeroLabel2">Strike Rate</span>
+            </div>
+            <div class="quick-metric-box">
+              <span class="metric-val" id="bioHeroMetric3">41.2</span>
+              <span class="metric-lbl" id="bioHeroLabel3">Batting Average</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Tactical Matchup Splits Card -->
+        <div class="tactical-splits-card" id="tacticalSplitsCard">
+          <div class="card-header splits-header">
+            <div class="header-left">
+              <div>
+                <h3 class="card-title" id="splitsCardTitle">Tactical Matchup Splits: Performance vs Bowling Types</h3>
+                <p class="splits-subtitle" id="splitsCardSubtitle">Filter batter metrics against specific bowling archetypes or multi-select styles</p>
+              </div>
+            </div>
+            <div class="header-right">
+              <!-- Role Toggle for All-Rounders -->
+              <div class="splits-role-toggle" id="splitsRoleToggle" style="display: none;">
+                <button class="role-pill active" id="splitsRoleBatBtn" data-role="bat">Batting Splits</button>
+                <button class="role-pill" id="splitsRoleBowlBtn" data-role="bowl">Bowling Splits</button>
+              </div>
+              <span class="header-tag primary" id="splitsActiveCountBadge">All Bowler Types Active</span>
+            </div>
+          </div>
+
+          <div class="card-body splits-body">
+            <!-- Batter Filter Controls (visible when analyzing batting) -->
+            <div class="compact-splits-toolbar" id="batterSplitsControls">
+              <div class="splits-toolbar-top">
+                <div class="filter-group">
+                  <label for="batterSplitsPresetSelect" class="filter-label">Quick Presets:</label>
+                  <select id="batterSplitsPresetSelect" class="custom-select filter-select-compact">
+                    <option value="all">All Bowler Styles (8 of 8)</option>
+                    <option value="express">Express Pace (LAF + RAF)</option>
+                    <option value="pace">All Pace (4 styles)</option>
+                    <option value="spin">All Spin (4 styles)</option>
+                    <option value="fingerspin">Finger Spin (SLA + Off)</option>
+                    <option value="wristspin">Wrist Spin (Wrist + LWS)</option>
+                    <option value="custom" disabled>Custom Multi-Selection</option>
+                  </select>
+                </div>
+
+                <div class="multiselect-header-meta">
+                  <span class="filter-label">Bowling Archetypes (Multi-Select):</span>
+                  <div class="multiselect-actions">
+                    <button type="button" class="compact-action-btn" id="btnSplitsSelectAll">Select All</button>
+                    <button type="button" class="compact-action-btn" id="btnSplitsClear">Clear</button>
+                    <span class="active-count-badge" id="splitsSelectionCount">8/8</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Multi-select pills displayed clearly and compactly -->
+              <div class="compact-pills-wrap" id="batterArchetypePills">
+                <button class="pill-btn-compact active" data-type="LAF" title="Left-Arm Fast"><span class="pill-dot laf"></span>LAF</button>
+                <button class="pill-btn-compact active" data-type="RAF" title="Right-Arm Fast"><span class="pill-dot raf"></span>RAF</button>
+                <button class="pill-btn-compact active" data-type="LAM" title="Left-Arm Medium"><span class="pill-dot lam"></span>LAM</button>
+                <button class="pill-btn-compact active" data-type="RAM" title="Right-Arm Medium"><span class="pill-dot ram"></span>RAM</button>
+                <button class="pill-btn-compact active" data-type="OFF_SPIN" title="Off Spin"><span class="pill-dot off"></span>Off Spin</button>
+                <button class="pill-btn-compact active" data-type="WRIST_SPIN" title="Wrist Spin"><span class="pill-dot wrist"></span>Wrist Spin</button>
+                <button class="pill-btn-compact active" data-type="SLA" title="Slow Left-Arm Orthodox"><span class="pill-dot sla"></span>Left Spin (SLA)</button>
+                <button class="pill-btn-compact active" data-type="LEFT_WRIST_SPIN" title="Left-Arm Wrist Spin"><span class="pill-dot lws"></span>Left Wrist Spin</button>
+              </div>
+            </div>
+
+            <!-- Bowler Filter Controls (visible when analyzing bowling) -->
+            <div class="compact-splits-toolbar" id="bowlerSplitsControls" style="display: none;">
+              <div class="splits-toolbar-top">
+                <div class="filter-group">
+                  <label for="bowlerSplitsPresetSelect" class="filter-label">Quick Presets:</label>
+                  <select id="bowlerSplitsPresetSelect" class="custom-select filter-select-compact">
+                    <option value="all">All Batters & Phases</option>
+                    <option value="rhb">vs RHB Only</option>
+                    <option value="lhb">vs LHB Only</option>
+                    <option value="powerplay">Powerplay (Top Order)</option>
+                    <option value="death">Death Overs (Finishers)</option>
+                    <option value="custom" disabled>Custom Selection</option>
+                  </select>
+                </div>
+
+                <div class="multiselect-header-meta">
+                  <span class="filter-label">Multi-Select Filters:</span>
+                  <div class="multiselect-actions">
+                    <button type="button" class="compact-action-btn" id="btnBowlerSplitsReset">Reset All</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Multi-select pills displayed clearly and compactly -->
+              <div class="bowler-compact-pills-row">
+                <div class="pills-subgroup">
+                  <span class="subgroup-lbl">Batter Stance:</span>
+                  <div class="compact-pills-wrap" id="bowlerHandPills">
+                    <button class="pill-btn-compact active" data-hand="RHB"><span class="pill-dot rhb"></span>RHB</button>
+                    <button class="pill-btn-compact active" data-hand="LHB"><span class="pill-dot lhb"></span>LHB</button>
+                  </div>
+                </div>
+
+                <div class="pills-subgroup">
+                  <span class="subgroup-lbl">Match Phase:</span>
+                  <div class="compact-pills-wrap" id="bowlerPhasePills">
+                    <button class="pill-btn-compact active" data-phase="Powerplay">Powerplay (1–6)</button>
+                    <button class="pill-btn-compact active" data-phase="Middle">Middle (7–15)</button>
+                    <button class="pill-btn-compact active" data-phase="Death">Death (16–20)</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dynamic Splits Stats Dashboard -->
+            <div class="splits-dashboard-container" id="splitsDashboard">
+              <!-- 6-Metric KPI Tiles -->
+              <div class="splits-kpi-grid" id="splitsKpiGrid">
+                <!-- Rendered via JS -->
+              </div>
+
+              <!-- Comparative Visual Shootout Chart -->
+              <div class="visual-canvas-card splits-visual-card" id="splitsVisualCard">
+                <div class="card-header splits-visual-header">
+                  <h4 class="card-title" id="splitsVisualChartTitle">Tactical Matchup Splits</h4>
+                  <span class="header-tag primary" id="splitsVisualTag">Performance Splits</span>
+                </div>
+                <div class="image-viewport splits-viewport">
+                  <img id="splitsComparisonImg" class="broadcast-img" alt="Tactical Matchup Splits Chart" src="">
+                </div>
+              </div>
+
+              <!-- Split Detail Grid: Left (Phase Breakdown) + Right (Archetype / Matchups breakdown) -->
+              <div class="splits-detail-grid">
+                <div class="splits-panel">
+                  <h4 class="splits-panel-title" id="splitsPhaseTitle">Phase Breakdown vs Selected Opponents</h4>
+                  <div class="splits-phase-bars" id="splitsPhaseBars">
+                    <!-- Rendered via JS -->
+                  </div>
+                </div>
+
+                <div class="splits-panel">
+                  <h4 class="splits-panel-title" id="splitsMatchupTitle">Matchup Breakdown & Top Opponents</h4>
+                  <div class="splits-matchup-table-wrapper" id="splitsMatchupContent">
+                    <!-- Rendered via JS -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3-Column Tactical Scouting Grid -->
+        <div class="tactical-grid">
+          
+          <!-- Column 1: Phase Efficiency Breakdown -->
+          <div class="tactical-card">
+            <div class="card-header">
+              <h3 class="card-title">Career Phase Efficiency</h3>
+            </div>
+            <div class="card-body" id="phaseEfficiencyBody">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Column 2: Kryptonite & Nemesis Bowlers -->
+          <div class="tactical-card">
+            <div class="card-header">
+              <h3 class="card-title" id="antagonistCardTitle">Primary Kryptonite & Top 3 Nemeses</h3>
+            </div>
+            <div class="card-body" id="antagonistBody">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Column 3: Domestic Moneyball Alternatives -->
+          <div class="tactical-card">
+            <div class="card-header">
+              <h3 class="card-title">Domestic Tactical Alternatives (SMAT)</h3>
+            </div>
+            <div class="card-body" id="moneyballBody">
+              <!-- Rendered via JS -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Global Multi-Tournament Footprint -->
+        <div class="footprint-card">
+          <div class="card-header">
+            <h3 class="card-title">Global Tournament Footprint</h3>
+            <span class="header-tag" id="footprintCountTag">3 Tournaments Covered</span>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="footprintTable">
+              <thead>
+                <tr>
+                  <th>Tournament</th>
+                  <th>Matches</th>
+                  <th id="thFootprintVolume">Runs</th>
+                  <th id="thFootprintRate">Strike Rate</th>
+                  <th id="thFootprintSec">Average</th>
+                  <th>Dot Ball %</th>
+                </tr>
+              </thead>
+              <tbody id="footprintTableBody">
+                <!-- Rendered via JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- TAB 2: INTERACTIVE BATTER WAGON WHEEL -->
+      <!-- ================================================================= -->
+      <section id="tab-wagon" class="tab-pane">
+        <div class="wagon-controls-bar">
+          <div class="controls-left">
+            <div class="filter-group">
+              <label for="wagonArchetypeSelect" class="filter-label">Filter by Bowler Archetype:</label>
+              <select id="wagonArchetypeSelect" class="custom-select filter-select">
+                <option value="ALL">All Bowler Types</option>
+                <option value="PACE">All Pace</option>
+                <option value="SPIN">All Spin</option>
+                <option value="RAF">Right-Arm Fast (RAF)</option>
+                <option value="LAF">Left-Arm Fast (LAF)</option>
+                <option value="RAM">Right-Arm Med (RAM)</option>
+                <option value="LAM">Left-Arm Med (LAM)</option>
+                <option value="OFF_SPIN">Off Spin</option>
+                <option value="WRIST_SPIN">Wrist Spin</option>
+                <option value="SLA">Left-Arm Spin (SLA)</option>
+              </select>
+            </div>
+          </div>
+          <div class="controls-right">
+            <button class="action-btn" id="refreshWagonBtn">Refresh Wagon Wheel</button>
+          </div>
+        </div>
+
+        <div class="wagon-display-grid">
+          <!-- Left: Broadcast Stadium Image -->
+          <div class="visual-canvas-card">
+            <div class="card-header">
+              <h3 class="card-title" id="wagonVisualTitle">Wagon Wheel Visual Map</h3>
+              <span class="header-tag" id="wagonDominantBadge">Dominant: Midwicket</span>
+            </div>
+            <div class="image-viewport">
+              <img id="wagonImg" class="broadcast-img" alt="Batter Wagon Wheel Chart" src="">
+            </div>
+          </div>
+
+          <!-- Right: Detailed Sector Data & Insights -->
+          <div class="sector-data-card">
+            <div class="card-header">
+              <h3 class="card-title">Field Sector Run Breakdown</h3>
+            </div>
+            <div class="card-body">
+              <div class="wagon-quick-stats">
+                <div class="stat-pill"><span class="k">Runs:</span> <strong id="wStatRuns">--</strong></div>
+                <div class="stat-pill"><span class="k">Balls:</span> <strong id="wStatBalls">--</strong></div>
+                <div class="stat-pill"><span class="k">SR:</span> <strong id="wStatSR">--</strong></div>
+                <div class="stat-pill"><span class="k">Dots:</span> <strong id="wStatDots">--%</strong></div>
+                <div class="stat-pill"><span class="k">Boundaries:</span> <strong id="wStatBnd">--%</strong></div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table" id="wagonSectorTable">
+                  <thead>
+                    <tr>
+                      <th>Sector</th>
+                      <th>Runs</th>
+                      <th>% of Total</th>
+                      <th>4s</th>
+                      <th>6s</th>
+                    </tr>
+                  </thead>
+                  <tbody id="wagonSectorBody">
+                    <!-- Rendered via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- TAB 3: BOWLER DEFENSIVE RADIAL WHEEL -->
+      <!-- ================================================================= -->
+      <section id="tab-defensive" class="tab-pane">
+        <div class="wagon-controls-bar">
+          <div class="controls-left">
+            <div class="filter-group">
+              <label for="defPhaseSelect" class="filter-label">Match Phase:</label>
+              <select id="defPhaseSelect" class="custom-select filter-select">
+                <option value="ALL">All Phases (Overs 1–20)</option>
+                <option value="Powerplay">Powerplay (Overs 1–6)</option>
+                <option value="Middle">Middle Overs (Overs 7–15)</option>
+                <option value="Death">Death Overs (Overs 16–20)</option>
+              </select>
+            </div>
+            
+            <div class="filter-group">
+              <label for="defHandSelect" class="filter-label">Batter Stance:</label>
+              <select id="defHandSelect" class="custom-select filter-select">
+                <option value="ALL">All Batters</option>
+                <option value="RHB">vs Right-Hand Bat (RHB)</option>
+                <option value="LHB">vs Left-Hand Bat (LHB)</option>
+              </select>
+            </div>
+          </div>
+          <div class="controls-right">
+            <button class="action-btn" id="refreshDefBtn">Refresh Defensive Map</button>
+          </div>
+        </div>
+
+        <div class="wagon-display-grid">
+          <!-- Left: Broadcast Defensive Map Image -->
+          <div class="visual-canvas-card">
+            <div class="card-header">
+              <h3 class="card-title" id="defVisualTitle">Defensive Field Distribution</h3>
+              <span class="header-tag fortress" id="defFortressBadge">Most Restrictive: Long Off</span>
+            </div>
+            <div class="image-viewport">
+              <img id="defImg" class="broadcast-img" alt="Bowler Defensive Field Distribution Map" src="">
+            </div>
+          </div>
+
+          <!-- Right: Restrictive vs Conceded Breakdown -->
+          <div class="sector-data-card">
+            <div class="card-header">
+              <h3 class="card-title">Runs Conceded by Field Sector</h3>
+            </div>
+            <div class="card-body">
+              <div class="wagon-quick-stats">
+                <div class="stat-pill"><span class="k">Runs Conceded:</span> <strong id="defStatRuns">--</strong></div>
+                <div class="stat-pill"><span class="k">Wickets:</span> <strong id="defStatWkts">--</strong></div>
+                <div class="stat-pill"><span class="k">Economy:</span> <strong id="defStatEcon">--</strong></div>
+                <div class="stat-pill"><span class="k">Strike Rate:</span> <strong id="defStatSR">--</strong></div>
+              </div>
+
+              <!-- Sector Insight Cards -->
+              <div class="def-insight-row">
+                <div class="insight-badge-box fortress">
+                  <div class="insight-label">PRIMARY RESTRICTIVE SECTOR</div>
+                  <div class="insight-title" id="defFortressName">Long Off</div>
+                  <div class="insight-meta" id="defFortressDetail">Only 7.0% conceded • 21 Wickets Induced</div>
+                </div>
+                <div class="insight-badge-box leak">
+                  <div class="insight-label">HIGH-CONCESSION SECTOR</div>
+                  <div class="insight-title" id="defLeakName">Cover</div>
+                  <div class="insight-meta" id="defLeakDetail">17.7% conceded • Opponents hit 549r</div>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="data-table" id="defSectorTable">
+                  <thead>
+                    <tr>
+                      <th>Sector</th>
+                      <th>Runs Conceded</th>
+                      <th>% Conceded</th>
+                      <th>Wickets</th>
+                      <th>Zone Audit</th>
+                    </tr>
+                  </thead>
+                  <tbody id="defSectorBody">
+                    <!-- Rendered via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- TAB 4: HEAD-TO-HEAD DUEL & COMPARE -->
+      <!-- ================================================================= -->
+      <section id="tab-compare" class="tab-pane">
+        <!-- Dual Input Card -->
+        <div class="compare-search-card">
+          <div class="compare-input-pair">
+            <div class="compare-field">
+              <label for="compPlayer1Input">Player 1 (Batter or Bowler):</label>
+              <input type="text" id="compPlayer1Input" class="search-input" value="Virat Kohli" autocomplete="off">
+            </div>
+            
+            <div class="vs-badge-circle">VS</div>
+            
+            <div class="compare-field">
+              <label for="compPlayer2Input">Player 2 (Batter or Bowler):</label>
+              <input type="text" id="compPlayer2Input" class="search-input" value="Sandeep Sharma" autocomplete="off">
+            </div>
+            
+            <button class="action-btn primary" id="launchCompareBtn">Compare Players</button>
+          </div>
+
+          <!-- Compact Comparison Controls Toolbar -->
+          <div class="compare-controls-bar">
+            <!-- Discipline Dropdown -->
+            <div class="filter-group">
+              <label for="compareModeSelect" class="filter-label">Comparison Discipline:</label>
+              <select id="compareModeSelect" class="custom-select filter-select">
+                <option value="auto">Auto-Detect Roles</option>
+                <option value="bat_vs_bat">Batter vs Batter (Both Batting)</option>
+                <option value="bowl_vs_bowl">Bowler vs Bowler (Both Bowling)</option>
+                <option value="bat_vs_bowl" id="optBatBowl">Player 1 (Bat) vs Player 2 (Bowl)</option>
+                <option value="bowl_vs_bat" id="optBowlBat">Player 1 (Bowl) vs Player 2 (Bat)</option>
+              </select>
+            </div>
+
+            <!-- Bowler Archetype Dropdown (only visible for Batter vs Batter) -->
+            <div class="filter-group" id="compareArchetypeWrap" style="display: none;">
+              <label for="compareArchetypeSelect" class="filter-label">vs Bowler Archetype:</label>
+              <select id="compareArchetypeSelect" class="custom-select filter-select">
+                <option value="ALL">All Bowler Types</option>
+                <option value="PACE">All Pace (LAF+RAF+LAM+RAM)</option>
+                <option value="SPIN">All Spin (SLA+Off+Wrist)</option>
+                <option value="RAF">Right-Arm Fast (RAF)</option>
+                <option value="LAF">Left-Arm Fast (LAF)</option>
+                <option value="RAM">Right-Arm Med (RAM)</option>
+                <option value="LAM">Left-Arm Med (LAM)</option>
+                <option value="OFF_SPIN">Off Spin</option>
+                <option value="WRIST_SPIN">Wrist Spin</option>
+                <option value="SLA">Left-Arm Spin (SLA)</option>
+              </select>
+            </div>
+
+            <!-- Batter Stance Dropdown (only visible for Bowler vs Bowler) -->
+            <div class="filter-group" id="compareHandWrap" style="display: none;">
+              <label for="compareHandSelect" class="filter-label">vs Batter Stance:</label>
+              <select id="compareHandSelect" class="custom-select filter-select">
+                <option value="ALL">All Batters</option>
+                <option value="RHB">vs Right-Hand Bat (RHB)</option>
+                <option value="LHB">vs Left-Hand Bat (LHB)</option>
+              </select>
+            </div>
+
+            <!-- Quick Duel Presets Dropdown -->
+            <div class="filter-group">
+              <label for="comparePresetSelect" class="filter-label">Quick Duel Presets:</label>
+              <select id="comparePresetSelect" class="custom-select filter-select">
+                <option value="">Load Preset Matchup...</option>
+                <option value="kohli_gill_raf" data-p1="Virat Kohli" data-p2="Shubman Gill" data-mode="bat_vs_bat" data-archetype="RAF">Kohli vs Gill (vs Right-Arm Fast)</option>
+                <option value="kohli_gill_laf" data-p1="Virat Kohli" data-p2="Shubman Gill" data-mode="bat_vs_bat" data-archetype="LAF">Kohli vs Gill (vs Left-Arm Fast)</option>
+                <option value="kohli_rohit" data-p1="Virat Kohli" data-p2="Rohit Sharma" data-mode="bat_vs_bat" data-archetype="ALL">Kohli vs Rohit (Batter Benchmark)</option>
+                <option value="bumrah_rashid_all" data-p1="Jasprit Bumrah" data-p2="Rashid Khan" data-mode="bowl_vs_bowl" data-hand="ALL">Bumrah vs Rashid (All Batters)</option>
+                <option value="bumrah_rashid_lhb" data-p1="Jasprit Bumrah" data-p2="Rashid Khan" data-mode="bowl_vs_bowl" data-hand="LHB">Bumrah vs Rashid (vs LHB)</option>
+                <option value="kohli_sandeep" data-p1="Virat Kohli" data-p2="Sandeep Sharma" data-mode="bat_vs_bowl">Kohli vs Sandeep Sharma (Head-to-Head Duel)</option>
+                <option value="pooran_hasaranga" data-p1="Nicholas Pooran" data-p2="Wanindu Hasaranga" data-mode="bat_vs_bowl">Pooran vs Hasaranga (Wrist Spin Matchup)</option>
+                <option value="russell_klaasen" data-p1="Andre Russell" data-p2="Heinrich Klaasen" data-mode="bat_vs_bat" data-archetype="ALL">Russell vs Klaasen (Finisher Comparison)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Comparison Results Area -->
+        <div id="compareResultsArea">
+          <!-- Comparison Visual Image -->
+          <div class="visual-canvas-card">
+            <div class="card-header">
+              <h3 class="card-title" id="compareTitle">Player Performance Comparison & Head-to-Head Duel</h3>
+              <span class="header-tag" id="compareDuelTypeBadge">Batter vs Bowler Duel</span>
+            </div>
+            <div class="image-viewport">
+              <img id="compareImg" class="broadcast-img" alt="Player Comparison Chart" src="">
+            </div>
+          </div>
+
+          <!-- Direct H2H Ball-by-Ball Dossier Card -->
+          <div class="h2h-dossier-card" id="h2hDossierCard" style="display: none;">
+            <div class="card-header">
+              <h3 class="card-title" id="h2hCardTitle">Historical Head-to-Head Matchup Record</h3>
+              <span class="header-tag primary">Real-life Delivery Log</span>
+            </div>
+            <div class="card-body">
+              <div class="h2h-stats-row" id="h2hStatsRow">
+                <!-- Rendered via JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Detailed Side-by-Side Overall Statistics Card -->
+          <div class="visual-canvas-card compare-stats-card" id="compareStatsCard">
+            <div class="card-header">
+              <h3 class="card-title" id="compareStatsCardTitle">Overall Performance Comparison</h3>
+              <span class="header-tag primary" id="compareStatsFilterBadge">All Bowler Types</span>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="data-table compare-metrics-table" id="compareMetricsTable">
+                  <thead>
+                    <tr>
+                      <th style="width: 32%;">Scouting Metric</th>
+                      <th style="width: 26%;" id="thCompPlayer1">Player 1</th>
+                      <th style="width: 26%;" id="thCompPlayer2">Player 2</th>
+                      <th style="width: 16%;">Advantage</th>
+                    </tr>
+                  </thead>
+                  <tbody id="compareMetricsBody">
+                    <!-- Rendered via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Phase-by-Phase Breakdown Grid (Powerplay, Middle, Death) -->
+          <div class="compare-phase-section" id="comparePhaseSection">
+            <div class="section-header-compact">
+              <h4 class="section-title">Phase-by-Phase Performance Breakdown</h4>
+              <span class="section-sub" id="comparePhaseSub">Side-by-side execution in Powerplay, Middle, and Death Overs</span>
+            </div>
+            <div class="compare-phase-grid" id="comparePhaseGrid">
+              <!-- Rendered via JS: 3 Cards for PP, Middle, Death -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================= -->
+      <!-- TAB 5: 18-LEAGUE DATABASE CENSUS -->
+      <!-- ================================================================= -->
+      <section id="tab-census" class="tab-pane">
+        <div class="census-hero-card">
+          <h2>Master Database Census: 18 Worldwide T20 Competitions</h2>
+          <p>Every single delivery in this engine is pulled from real-life historical ball-by-ball matches across international tournaments and premier domestic leagues worldwide.</p>
+          <div class="census-summary-pills">
+            <div class="c-pill"><strong>10,859</strong> Matches</div>
+            <div class="c-pill"><strong>2,671,062</strong> Deliveries</div>
+            <div class="c-pill"><strong>7,820</strong> Batters</div>
+            <div class="c-pill"><strong>5,833</strong> Bowlers</div>
+            <div class="c-pill"><strong>18</strong> Leagues</div>
+          </div>
+        </div>
+
+        <div class="census-grid" id="censusGrid">
+          <!-- Rendered via JS -->
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <div class="footer-left">
+        <strong>T20 Matchup & Value Audit Platform</strong> • Official Cricsheet Deliveries Archive
+      </div>
+      <div class="footer-right">
+        Pure Skill-Based Data Analytics • Zero Hardcoding • Worldwide Domestic & International T20
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
