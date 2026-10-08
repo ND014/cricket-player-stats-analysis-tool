@@ -88,6 +88,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const optBatBowl = document.getElementById('optBatBowl');
   const optBowlBat = document.getElementById('optBowlBat');
 
+  // Safe number formatter helper to guard against undefined / null .toFixed crashes
+  function fmt(val, decimals = 1, fallback = '0.0') {
+    if (val === null || val === undefined || isNaN(val)) return fallback;
+    const num = Number(val);
+    return isNaN(num) ? fallback : num.toFixed(decimals);
+  }
+
   // ==========================================================================
   // 1. TAB SWITCHING
   // ==========================================================================
@@ -498,9 +505,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const t = altsData.target || {};
     const phaseStr = (altsData.phase || (isBowlerMode ? 'Death' : 'Middle')).toUpperCase();
 
-    const targetMetric = (t.econ !== undefined)
-      ? `${(t.econ || 0).toFixed(2)} Econ • ${(t.dot_pct || 0).toFixed(1)}% Dots (${t.b || 0} balls)`
-      : `${(t.sr || 0).toFixed(1)} SR • ${(t.dot_pct || 0).toFixed(1)}% Dots (${t.b || 0} balls)`;
+    const targetMetric = (t.econ !== undefined && t.econ !== null)
+      ? `${fmt(t.econ, 2)} Econ • ${fmt(t.dot_pct, 1)}% Dots (${t.b || 0} balls)`
+      : `${fmt(t.sr, 1)} SR • ${fmt(t.dot_pct, 1)}% Dots (${t.b || 0} balls)`;
 
     let html = `
       <div style="background:rgba(11, 15, 25, 0.7); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:10px 14px; margin-bottom:12px; font-size:0.8rem;">
@@ -510,9 +517,9 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
 
     altsData.alts.forEach(a => {
-      const metricStr = (a.econ !== undefined)
-        ? `${a.econ.toFixed(2)} Econ • ${(a.dot_pct || 0).toFixed(1)}% Dots`
-        : `${(a.sr || 0).toFixed(1)} SR • ${(a.dot_pct || 0).toFixed(1)}% Dots`;
+      const metricStr = (a.econ !== undefined && a.econ !== null)
+        ? `${fmt(a.econ, 2)} Econ • ${fmt(a.dot_pct, 1)}% Dots`
+        : `${fmt(a.sr, 1)} SR • ${fmt(a.dot_pct, 1)}% Dots`;
       html += `
         <div class="alt-item">
           <div class="alt-header-row">
@@ -558,18 +565,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     tbody.innerHTML = footprint.map(r => {
-      const volume = isBowlerMode ? `${(r.overs || (r.balls / 6.0)).toFixed(1)} ov` : Math.round(r.runs || 0).toLocaleString();
-      const rate = isBowlerMode ? (r.econ || 0).toFixed(2) : (r.sr || 0).toFixed(1);
-      const sec = isBowlerMode ? (r.wickets || 0) : (r.avg || 0).toFixed(1);
+      const volume = isBowlerMode ? `${fmt(r.overs || ((r.balls || 0) / 6.0), 1)} ov` : Math.round(r.runs || 0).toLocaleString();
+      const rate = isBowlerMode ? fmt(r.econ, 2) : fmt(r.sr, 1);
+      const sec = isBowlerMode ? (r.wickets || 0) : fmt(r.avg, 1);
 
       return `
         <tr>
           <td><strong>${r.tournament}</strong></td>
-          <td>${r.matches}</td>
+          <td>${r.matches || 0}</td>
           <td>${volume}</td>
           <td><strong>${rate}</strong></td>
           <td>${sec}</td>
-          <td>${(r.dot_pct || 0).toFixed(1)}%</td>
+          <td>${fmt(r.dot_pct, 1)}%</td>
         </tr>
       `;
     }).join('');
@@ -890,67 +897,67 @@ document.addEventListener('DOMContentLoaded', () => {
       if (isBat) {
         splitsKpiGrid.innerHTML = `
           <div class="split-kpi-card">
-            <div class="split-kpi-val highlight-blue">${s.runs.toLocaleString()}</div>
+            <div class="split-kpi-val highlight-blue">${(s.runs || 0).toLocaleString()}</div>
             <div class="split-kpi-lbl">Runs Scored</div>
-            <div class="split-kpi-sub">in ${s.balls.toLocaleString()} balls</div>
+            <div class="split-kpi-sub">in ${(s.balls || 0).toLocaleString()} balls</div>
           </div>
           <div class="split-kpi-card">
-            <div class="split-kpi-val highlight-gold">${s.sr.toFixed(1)}</div>
+            <div class="split-kpi-val highlight-gold">${fmt(s.sr, 1)}</div>
             <div class="split-kpi-lbl">Strike Rate</div>
-            <div class="split-kpi-sub">${s.sr >= 135 ? 'Above Par (135)' : 'Below Par (135)'}</div>
+            <div class="split-kpi-sub">${(s.sr || 0) >= 135 ? 'Above Par (135)' : 'Below Par (135)'}</div>
           </div>
           <div class="split-kpi-card">
-            <div class="split-kpi-val highlight-green">${s.avg.toFixed(1)}</div>
+            <div class="split-kpi-val highlight-green">${fmt(s.avg, 1)}</div>
             <div class="split-kpi-lbl">Batting Average</div>
-            <div class="split-kpi-sub">${s.dismissals} Dismissals</div>
+            <div class="split-kpi-sub">${s.dismissals || 0} Dismissals</div>
           </div>
           <div class="split-kpi-card">
-            <div class="split-kpi-val">${s.dot_pct.toFixed(1)}%</div>
+            <div class="split-kpi-val">${fmt(s.dot_pct, 1)}%</div>
             <div class="split-kpi-lbl">Dot Ball %</div>
-            <div class="split-kpi-sub">${s.dots.toLocaleString()} dots</div>
+            <div class="split-kpi-sub">${(s.dots || 0).toLocaleString()} dots</div>
           </div>
           <div class="split-kpi-card">
-            <div class="split-kpi-val highlight-gold">${s.boundaries}</div>
+            <div class="split-kpi-val highlight-gold">${s.boundaries || 0}</div>
             <div class="split-kpi-lbl">Boundaries</div>
-            <div class="split-kpi-sub">${s.fours}x4, ${s.sixes}x6 (${s.boundary_pct.toFixed(1)}%)</div>
+            <div class="split-kpi-sub">${s.fours || 0}x4, ${s.sixes || 0}x6 (${fmt(s.boundary_pct, 1)}%)</div>
           </div>
           <div class="split-kpi-card">
-            <div class="split-kpi-val">${s.bpd.toFixed(1)}</div>
+            <div class="split-kpi-val">${fmt(s.bpd, 1)}</div>
             <div class="split-kpi-lbl">Balls Per Out</div>
-            <div class="split-kpi-sub">${s.dismissals > 0 ? `Out every ${s.bpd.toFixed(0)}b` : 'Never Dismissed'}</div>
+            <div class="split-kpi-sub">${(s.dismissals || 0) > 0 ? `Out every ${fmt(s.bpd, 0, '0')}b` : 'Never Dismissed'}</div>
           </div>
         `;
       } else {
         splitsKpiGrid.innerHTML = `
           <div class="split-kpi-card">
-            <div class="split-kpi-val highlight-red">${s.wickets}</div>
+            <div class="split-kpi-val highlight-red">${s.wickets || 0}</div>
             <div class="split-kpi-lbl">Wickets Taken</div>
-            <div class="split-kpi-sub">in ${s.overs} ov (${s.balls}b)</div>
+            <div class="split-kpi-sub">in ${s.overs || '0.0'} ov (${s.balls || 0}b)</div>
           </div>
           <div class="split-kpi-card">
-            <div class="split-kpi-val highlight-green">${s.econ.toFixed(2)}</div>
+            <div class="split-kpi-val highlight-green">${fmt(s.econ, 2)}</div>
             <div class="split-kpi-lbl">Economy Rate</div>
-            <div class="split-kpi-sub">${s.econ <= 7.5 ? 'Elite Containment' : 'Runs per 6 balls'}</div>
+            <div class="split-kpi-sub">${(s.econ || 0) <= 7.5 ? 'Elite Containment' : 'Runs per 6 balls'}</div>
           </div>
           <div class="split-kpi-card">
-            <div class="split-kpi-val highlight-gold">${s.avg.toFixed(1)}</div>
+            <div class="split-kpi-val highlight-gold">${fmt(s.avg, 1)}</div>
             <div class="split-kpi-lbl">Bowling Average</div>
             <div class="split-kpi-sub">Runs conceded / wkt</div>
           </div>
           <div class="split-kpi-card">
-            <div class="split-kpi-val highlight-blue">${s.sr.toFixed(1)}</div>
+            <div class="split-kpi-val highlight-blue">${fmt(s.sr, 1)}</div>
             <div class="split-kpi-lbl">Bowling SR</div>
             <div class="split-kpi-sub">Balls bowled / wkt</div>
           </div>
           <div class="split-kpi-card">
-            <div class="split-kpi-val">${s.dot_pct.toFixed(1)}%</div>
+            <div class="split-kpi-val">${fmt(s.dot_pct, 1)}%</div>
             <div class="split-kpi-lbl">Dot Choke %</div>
-            <div class="split-kpi-sub">${s.dots.toLocaleString()} dot deliveries</div>
+            <div class="split-kpi-sub">${(s.dots || 0).toLocaleString()} dot deliveries</div>
           </div>
           <div class="split-kpi-card">
-            <div class="split-kpi-val">${s.runs.toLocaleString()}</div>
+            <div class="split-kpi-val">${(s.runs || 0).toLocaleString()}</div>
             <div class="split-kpi-lbl">Runs Conceded</div>
-            <div class="split-kpi-sub">${s.boundaries} bnds conceded</div>
+            <div class="split-kpi-sub">${s.boundaries || 0} bnds conceded</div>
           </div>
         `;
       }
@@ -999,13 +1006,13 @@ document.addEventListener('DOMContentLoaded', () => {
         splitsPhaseTitle.textContent = 'Phase Breakdown vs Selected Bowler Types';
         splitsPhaseBars.innerHTML = phases.map(ph => {
           const p = (data.phases && data.phases[ph]) ? data.phases[ph] : { balls: 0, runs: 0, dismissals: 0, sr: 0, dot_pct: 0 };
-          const fillWidth = Math.min(100, Math.max(8, (p.sr / 200) * 100));
+          const fillWidth = Math.min(100, Math.max(8, ((p.sr || 0) / 200) * 100));
           return `
             <div class="splits-phase-bar-item">
               <div class="phase-bar-header">
                 <span>${ph} (Overs ${ph === 'Powerplay' ? '1–6' : (ph === 'Middle' ? '7–15' : '16–20')})</span>
                 <span style="font-family:var(--font-mono, monospace); color:var(--text-secondary); font-size:0.75rem;">
-                  SR: <strong style="color:var(--text-primary); font-size:0.85rem;">${p.sr.toFixed(1)}</strong> • ${p.runs}r (${p.balls}b) • ${p.dismissals} outs • ${p.dot_pct.toFixed(1)}% dots
+                  SR: <strong style="color:var(--text-primary); font-size:0.85rem;">${fmt(p.sr, 1)}</strong> • ${p.runs || 0}r (${p.balls || 0}b) • ${p.dismissals || 0} outs • ${fmt(p.dot_pct, 1)}% dots
                 </span>
               </div>
               <div class="phase-bar-track">
@@ -1018,13 +1025,13 @@ document.addEventListener('DOMContentLoaded', () => {
         splitsPhaseTitle.textContent = 'Phase Breakdown vs Selected Batter Profiles';
         splitsPhaseBars.innerHTML = phases.map(ph => {
           const p = (data.phases && data.phases[ph]) ? data.phases[ph] : { balls: 0, runs: 0, wickets: 0, econ: 0, dot_pct: 0 };
-          const fillWidth = Math.min(100, Math.max(8, (12 - p.econ) * 10));
+          const fillWidth = Math.min(100, Math.max(8, (12 - (p.econ || 0)) * 10));
           return `
             <div class="splits-phase-bar-item">
               <div class="phase-bar-header">
                 <span>${ph} (Overs ${ph === 'Powerplay' ? '1–6' : (ph === 'Middle' ? '7–15' : '16–20')})</span>
                 <span style="font-family:var(--font-mono, monospace); color:var(--text-secondary); font-size:0.75rem;">
-                  Econ: <strong style="color:var(--text-primary); font-size:0.85rem;">${p.econ.toFixed(2)}</strong> • ${p.wickets} wkts • ${p.runs}r (${p.balls}b) • ${p.dot_pct.toFixed(1)}% dots
+                  Econ: <strong style="color:var(--text-primary); font-size:0.85rem;">${fmt(p.econ, 2)}</strong> • ${p.wickets || 0} wkts • ${p.runs || 0}r (${p.balls || 0}b) • ${fmt(p.dot_pct, 1)}% dots
                 </span>
               </div>
               <div class="phase-bar-track">
@@ -1062,12 +1069,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${archList.map(a => `
                   <tr>
                     <td><strong>${a.archetype}</strong></td>
-                    <td>${a.balls}</td>
-                    <td>${a.runs}</td>
-                    <td>${a.dismissals}</td>
-                    <td><strong style="color:${a.sr >= 135 ? 'var(--primary-blue)' : 'var(--text-secondary)'}">${a.sr.toFixed(1)}</strong></td>
-                    <td>${a.dot_pct.toFixed(1)}%</td>
-                    <td>${a.avg.toFixed(1)}</td>
+                    <td>${a.balls || 0}</td>
+                    <td>${a.runs || 0}</td>
+                    <td>${a.dismissals || 0}</td>
+                    <td><strong style="color:${(a.sr || 0) >= 135 ? 'var(--primary-blue)' : 'var(--text-secondary)'}">${fmt(a.sr, 1)}</strong></td>
+                    <td>${fmt(a.dot_pct, 1)}%</td>
+                    <td>${fmt(a.avg, 1)}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -1093,11 +1100,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${topOpp.map(o => `
                   <tr>
                     <td><strong>${o.bowler}</strong></td>
-                    <td><span style="font-size:0.72rem; color:var(--text-secondary);">${o.bowler_archetype}</span></td>
-                    <td>${o.balls}</td>
-                    <td>${o.runs}</td>
-                    <td><strong style="color:${o.dismissals > 0 ? '#EF4444' : 'inherit'}">${o.dismissals}</strong></td>
-                    <td>${o.sr.toFixed(1)}</td>
+                    <td><span style="font-size:0.72rem; color:var(--text-secondary);">${o.bowler_archetype || ''}</span></td>
+                    <td>${o.balls || 0}</td>
+                    <td>${o.runs || 0}</td>
+                    <td><strong style="color:${(o.dismissals || 0) > 0 ? '#EF4444' : 'inherit'}">${o.dismissals || 0}</strong></td>
+                    <td>${fmt(o.sr, 1)}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -1132,13 +1139,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${handsList.map(h => `
                   <tr>
                     <td><strong>vs ${h.hand}</strong></td>
-                    <td>${h.balls}</td>
-                    <td>${h.runs}</td>
-                    <td><strong style="color:#EF4444">${h.wickets}</strong></td>
-                    <td><strong>${h.econ.toFixed(2)}</strong></td>
-                    <td>${h.avg.toFixed(1)}</td>
-                    <td>${h.sr.toFixed(1)}</td>
-                    <td>${h.dot_pct.toFixed(1)}%</td>
+                    <td>${h.balls || 0}</td>
+                    <td>${h.runs || 0}</td>
+                    <td><strong style="color:#EF4444">${h.wickets || 0}</strong></td>
+                    <td><strong>${fmt(h.econ, 2)}</strong></td>
+                    <td>${fmt(h.avg, 1)}</td>
+                    <td>${fmt(h.sr, 1)}</td>
+                    <td>${fmt(h.dot_pct, 1)}%</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -1164,11 +1171,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${topOpp.map(o => `
                   <tr>
                     <td><strong>${o.striker}</strong></td>
-                    <td><span style="font-size:0.72rem; color:var(--text-secondary);">${o.hand}</span></td>
-                    <td>${o.balls}</td>
-                    <td>${o.runs}</td>
-                    <td><strong style="color:#EF4444">${o.wickets}</strong></td>
-                    <td>${o.econ.toFixed(2)}</td>
+                    <td><span style="font-size:0.72rem; color:var(--text-secondary);">${o.hand || ''}</span></td>
+                    <td>${o.balls || 0}</td>
+                    <td>${o.runs || 0}</td>
+                    <td><strong style="color:#EF4444">${o.wickets || 0}</strong></td>
+                    <td>${fmt(o.econ, 2)}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -1226,16 +1233,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (data.dominant_sector) {
-      document.getElementById('wagonDominantBadge').textContent = `Dominant: ${data.dominant_sector.FullName} (${data.dominant_sector.Run_Pct.toFixed(1)}%)`;
+      document.getElementById('wagonDominantBadge').textContent = `Dominant: ${data.dominant_sector.FullName || ''} (${fmt(data.dominant_sector.Run_Pct, 1)}%)`;
     }
 
     // 3. Quick Stats
-    document.getElementById('wStatRuns').textContent = data.total_runs.toLocaleString();
-    document.getElementById('wStatBalls').textContent = data.total_balls.toLocaleString();
-    document.getElementById('wStatSR').textContent = data.overall_sr.toFixed(1);
+    document.getElementById('wStatRuns').textContent = (data.total_runs || 0).toLocaleString();
+    document.getElementById('wStatBalls').textContent = (data.total_balls || 0).toLocaleString();
+    document.getElementById('wStatSR').textContent = fmt(data.overall_sr, 1);
     
-    const dotPct = ((data.total_dots * 100) / Math.max(1, data.total_balls)).toFixed(1);
-    const bndPct = (((data.total_fours + data.total_sixes) * 100) / Math.max(1, data.total_balls)).toFixed(1);
+    const dotPct = fmt(((data.total_dots || 0) * 100) / Math.max(1, data.total_balls || 1), 1);
+    const bndPct = fmt((((data.total_fours || 0) + (data.total_sixes || 0)) * 100) / Math.max(1, data.total_balls || 1), 1);
     document.getElementById('wStatDots').textContent = `${dotPct}%`;
     document.getElementById('wStatBnd').textContent = `${bndPct}%`;
 
@@ -1247,10 +1254,10 @@ document.addEventListener('DOMContentLoaded', () => {
           <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${r.Color}; margin-right:8px;"></span>
           <strong>${r.Sector}</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(${r.FullName})</span>
         </td>
-        <td>${Math.round(r.Runs)}</td>
-        <td><strong>${r.Run_Pct.toFixed(1)}%</strong></td>
-        <td>${r.Fours}</td>
-        <td>${r.Sixes}</td>
+        <td>${Math.round(r.Runs || 0)}</td>
+        <td><strong>${fmt(r.Run_Pct, 1)}%</strong></td>
+        <td>${r.Fours || 0}</td>
+        <td>${r.Sixes || 0}</td>
       </tr>
     `).join('');
   }
@@ -1339,21 +1346,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (data.fortress_sector) {
-      document.getElementById('defFortressBadge').textContent = `Most Restrictive: ${data.fortress_sector.FullName} (${data.fortress_sector.Conceded_Pct.toFixed(1)}%)`;
-      document.getElementById('defFortressName').textContent = data.fortress_sector.FullName;
-      document.getElementById('defFortressDetail').textContent = `Only ${data.fortress_sector.Conceded_Pct.toFixed(1)}% runs conceded • ${data.fortress_sector.Wickets} Wickets Induced`;
+      document.getElementById('defFortressBadge').textContent = `Most Restrictive: ${data.fortress_sector.FullName || ''} (${fmt(data.fortress_sector.Conceded_Pct, 1)}%)`;
+      document.getElementById('defFortressName').textContent = data.fortress_sector.FullName || '';
+      document.getElementById('defFortressDetail').textContent = `Only ${fmt(data.fortress_sector.Conceded_Pct, 1)}% runs conceded • ${data.fortress_sector.Wickets || 0} Wickets Induced`;
     }
 
     if (data.leak_sector) {
-      document.getElementById('defLeakName').textContent = data.leak_sector.FullName;
-      document.getElementById('defLeakDetail').textContent = `${data.leak_sector.Conceded_Pct.toFixed(1)}% conceded • Opponents scored ${Math.round(data.leak_sector.RunsConceded)} runs`;
+      document.getElementById('defLeakName').textContent = data.leak_sector.FullName || '';
+      document.getElementById('defLeakDetail').textContent = `${fmt(data.leak_sector.Conceded_Pct, 1)}% conceded • Opponents scored ${Math.round(data.leak_sector.RunsConceded || 0)} runs`;
     }
 
     // 3. Quick Stats
-    document.getElementById('defStatRuns').textContent = Math.round(data.total_runs_conceded).toLocaleString();
-    document.getElementById('defStatWkts').textContent = data.total_wkts;
-    document.getElementById('defStatEcon').textContent = data.overall_econ.toFixed(2);
-    document.getElementById('defStatSR').textContent = data.overall_sr.toFixed(1);
+    document.getElementById('defStatRuns').textContent = Math.round(data.total_runs_conceded || 0).toLocaleString();
+    document.getElementById('defStatWkts').textContent = data.total_wkts || 0;
+    document.getElementById('defStatEcon').textContent = fmt(data.overall_econ, 2);
+    document.getElementById('defStatSR').textContent = fmt(data.overall_sr, 1);
 
     // 4. Sector Table
     const tbody = document.getElementById('defSectorBody');
@@ -1362,9 +1369,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return `
         <tr>
           <td><strong>${r.Sector}</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(${r.FullName})</span></td>
-          <td>${Math.round(r.RunsConceded)}</td>
-          <td><strong>${r.Conceded_Pct.toFixed(1)}%</strong></td>
-          <td>${r.Wickets}</td>
+          <td>${Math.round(r.RunsConceded || 0)}</td>
+          <td><strong>${fmt(r.Conceded_Pct, 1)}%</strong></td>
+          <td>${r.Wickets || 0}</td>
           <td>${tag}</td>
         </tr>
       `;
@@ -1587,7 +1594,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="lbl">Balls Faced</div>
         </div>
         <div class="h2h-stat-tile">
-          <div class="num highlight-blue">${h.sr.toFixed(1)}</div>
+          <div class="num highlight-blue">${fmt(h.sr, 1)}</div>
           <div class="lbl">Strike Rate</div>
         </div>
         <div class="h2h-stat-tile">
@@ -1746,33 +1753,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="phase-compare-row">
                   <span class="lbl">Strike Rate</span>
                   <div class="vals">
-                    <span class="phase-val-pill p1">${p1Ph.sr.toFixed(1)}</span>
+                    <span class="phase-val-pill p1">${fmt(p1Ph.sr, 1)}</span>
                     <span style="color:var(--text-muted); font-size:0.75rem;">vs</span>
-                    <span class="phase-val-pill p2">${p2Ph.sr.toFixed(1)}</span>
+                    <span class="phase-val-pill p2">${fmt(p2Ph.sr, 1)}</span>
                   </div>
                 </div>
                 <div class="phase-compare-row">
                   <span class="lbl">Runs (Balls)</span>
                   <div class="vals">
-                    <span style="color:#F8FAFC; font-weight:600;">${p1Ph.runs} <span style="font-size:0.72rem; color:var(--text-muted);">(${p1Ph.balls}b)</span></span>
+                    <span style="color:#F8FAFC; font-weight:600;">${p1Ph.runs || 0} <span style="font-size:0.72rem; color:var(--text-muted);">(${p1Ph.balls || 0}b)</span></span>
                     <span style="color:var(--text-muted); font-size:0.75rem;">vs</span>
-                    <span style="color:#F8FAFC; font-weight:600;">${p2Ph.runs} <span style="font-size:0.72rem; color:var(--text-muted);">(${p2Ph.balls}b)</span></span>
+                    <span style="color:#F8FAFC; font-weight:600;">${p2Ph.runs || 0} <span style="font-size:0.72rem; color:var(--text-muted);">(${p2Ph.balls || 0}b)</span></span>
                   </div>
                 </div>
                 <div class="phase-compare-row">
                   <span class="lbl">Dismissals</span>
                   <div class="vals">
-                    <span style="color:${p1Ph.outs > 0 ? '#EF4444' : 'inherit'}; font-weight:600;">${p1Ph.outs} outs</span>
+                    <span style="color:${(p1Ph.outs || 0) > 0 ? '#EF4444' : 'inherit'}; font-weight:600;">${p1Ph.outs || 0} outs</span>
                     <span style="color:var(--text-muted); font-size:0.75rem;">vs</span>
-                    <span style="color:${p2Ph.outs > 0 ? '#EF4444' : 'inherit'}; font-weight:600;">${p2Ph.outs} outs</span>
+                    <span style="color:${(p2Ph.outs || 0) > 0 ? '#EF4444' : 'inherit'}; font-weight:600;">${p2Ph.outs || 0} outs</span>
                   </div>
                 </div>
                 <div class="phase-compare-row">
                   <span class="lbl">Dot Ball %</span>
                   <div class="vals">
-                    <span style="color:#94A3B8;">${p1Ph.dot_pct.toFixed(1)}%</span>
+                    <span style="color:#94A3B8;">${fmt(p1Ph.dot_pct, 1)}%</span>
                     <span style="color:var(--text-muted); font-size:0.75rem;">vs</span>
-                    <span style="color:#94A3B8;">${p2Ph.dot_pct.toFixed(1)}%</span>
+                    <span style="color:#94A3B8;">${fmt(p2Ph.dot_pct, 1)}%</span>
                   </div>
                 </div>
                 <div class="phase-compare-row">
@@ -1806,33 +1813,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="phase-compare-row">
                   <span class="lbl">Economy Rate</span>
                   <div class="vals">
-                    <span class="phase-val-pill p1">${p1Ph.econ.toFixed(2)}</span>
+                    <span class="phase-val-pill p1">${fmt(p1Ph.econ, 2)}</span>
                     <span style="color:var(--text-muted); font-size:0.75rem;">vs</span>
-                    <span class="phase-val-pill p2">${p2Ph.econ.toFixed(2)}</span>
+                    <span class="phase-val-pill p2">${fmt(p2Ph.econ, 2)}</span>
                   </div>
                 </div>
                 <div class="phase-compare-row">
                   <span class="lbl">Wickets</span>
                   <div class="vals">
-                    <span style="color:#10B981; font-weight:700;">${p1Ph.wickets} wkts</span>
+                    <span style="color:#10B981; font-weight:700;">${p1Ph.wickets || 0} wkts</span>
                     <span style="color:var(--text-muted); font-size:0.75rem;">vs</span>
-                    <span style="color:#10B981; font-weight:700;">${p2Ph.wickets} wkts</span>
+                    <span style="color:#10B981; font-weight:700;">${p2Ph.wickets || 0} wkts</span>
                   </div>
                 </div>
                 <div class="phase-compare-row">
                   <span class="lbl">Runs (Overs)</span>
                   <div class="vals">
-                    <span style="color:#F8FAFC;">${p1Ph.runs}r <span style="font-size:0.72rem; color:var(--text-muted);">(${p1Ph.overs}ov)</span></span>
+                    <span style="color:#F8FAFC;">${p1Ph.runs || 0}r <span style="font-size:0.72rem; color:var(--text-muted);">(${p1Ph.overs || 0}ov)</span></span>
                     <span style="color:var(--text-muted); font-size:0.75rem;">vs</span>
-                    <span style="color:#F8FAFC;">${p2Ph.runs}r <span style="font-size:0.72rem; color:var(--text-muted);">(${p2Ph.overs}ov)</span></span>
+                    <span style="color:#F8FAFC;">${p2Ph.runs || 0}r <span style="font-size:0.72rem; color:var(--text-muted);">(${p2Ph.overs || 0}ov)</span></span>
                   </div>
                 </div>
                 <div class="phase-compare-row">
                   <span class="lbl">Dot Ball %</span>
                   <div class="vals">
-                    <span style="color:#94A3B8;">${p1Ph.dot_pct.toFixed(1)}%</span>
+                    <span style="color:#94A3B8;">${fmt(p1Ph.dot_pct, 1)}%</span>
                     <span style="color:var(--text-muted); font-size:0.75rem;">vs</span>
-                    <span style="color:#94A3B8;">${p2Ph.dot_pct.toFixed(1)}%</span>
+                    <span style="color:#94A3B8;">${fmt(p2Ph.dot_pct, 1)}%</span>
                   </div>
                 </div>
               </div>
@@ -1859,25 +1866,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="phase-compare-row">
                   <span class="lbl">Efficiency Metric</span>
                   <div class="vals">
-                    <span class="phase-val-pill p1">SR: ${p1Ph.sr.toFixed(1)}</span>
+                    <span class="phase-val-pill p1">SR: ${fmt(p1Ph.sr, 1)}</span>
                     <span style="color:var(--text-muted); font-size:0.75rem;">vs</span>
-                    <span class="phase-val-pill p2">Econ: ${p2Ph.econ.toFixed(2)}</span>
+                    <span class="phase-val-pill p2">Econ: ${fmt(p2Ph.econ, 2)}</span>
                   </div>
                 </div>
                 <div class="phase-compare-row">
                   <span class="lbl">Volume</span>
                   <div class="vals">
-                    <span style="color:#F8FAFC;">${p1Ph.runs}r (${p1Ph.balls}b)</span>
+                    <span style="color:#F8FAFC;">${p1Ph.runs || 0}r (${p1Ph.balls || 0}b)</span>
                     <span style="color:var(--text-muted); font-size:0.75rem;">vs</span>
-                    <span style="color:#10B981; font-weight:700;">${p2Ph.wickets}w (${p2Ph.overs}ov)</span>
+                    <span style="color:#10B981; font-weight:700;">${p2Ph.wickets || 0}w (${p2Ph.overs || 0}ov)</span>
                   </div>
                 </div>
                 <div class="phase-compare-row">
                   <span class="lbl">Dot Ball %</span>
                   <div class="vals">
-                    <span style="color:#94A3B8;">${p1Ph.dot_pct.toFixed(1)}%</span>
+                    <span style="color:#94A3B8;">${fmt(p1Ph.dot_pct, 1)}%</span>
                     <span style="color:var(--text-muted); font-size:0.75rem;">vs</span>
-                    <span style="color:#94A3B8;">${p2Ph.dot_pct.toFixed(1)}%</span>
+                    <span style="color:#94A3B8;">${fmt(p2Ph.dot_pct, 1)}%</span>
                   </div>
                 </div>
               </div>
