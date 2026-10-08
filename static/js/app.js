@@ -609,7 +609,8 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSplitsRoleUI();
 
     const initSp = auditData.initial_splits;
-    if (initSp && ((initSp.active_role === state.splitsRole) || (initSp.role === state.splitsRole) || (!initSp.active_role && !initSp.role && state.splitsRole === (isBowler ? 'bowl' : 'bat')))) {
+    const initSpRole = initSp ? (initSp.active_role || (initSp.role === 'Bowler' ? 'bowl' : 'bat')) : null;
+    if (initSp && initSpRole === state.splitsRole) {
       renderSplitsDashboard(initSp);
     } else {
       fetchTacticalSplits();
@@ -874,7 +875,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Render Dashboard ---
   function renderSplitsDashboard(data) {
-    const isBat = (data.role === 'Batter');
+    const isBat = (data.active_role === 'bat') || 
+                  (data.role === 'Batter') || 
+                  (data.role === 'bat') || 
+                  (Boolean(data.archetypes) && !data.hands) ||
+                  (state.splitsRole === 'bat' && data.active_role !== 'bowl' && data.role !== 'Bowler');
     const s = data.summary || {};
 
     // 1. Badge & Subtitle
@@ -1101,8 +1106,8 @@ document.addEventListener('DOMContentLoaded', () => {
               <tbody>
                 ${topOpp.map(o => `
                   <tr>
-                    <td><strong>${o.bowler}</strong></td>
-                    <td><span style="font-size:0.72rem; color:var(--text-secondary);">${o.bowler_archetype || ''}</span></td>
+                    <td><strong>${o.bowler || o.striker || 'Unknown'}</strong></td>
+                    <td><span style="font-size:0.72rem; color:var(--text-secondary);">${o.bowler_archetype || o.hand || ''}</span></td>
                     <td>${o.balls || 0}</td>
                     <td>${o.runs || 0}</td>
                     <td><strong style="color:${(o.dismissals || 0) > 0 ? '#EF4444' : 'inherit'}">${o.dismissals || 0}</strong></td>
@@ -1172,11 +1177,11 @@ document.addEventListener('DOMContentLoaded', () => {
               <tbody>
                 ${topOpp.map(o => `
                   <tr>
-                    <td><strong>${o.striker}</strong></td>
-                    <td><span style="font-size:0.72rem; color:var(--text-secondary);">${o.hand || ''}</span></td>
+                    <td><strong>${o.striker || o.bowler || 'Unknown'}</strong></td>
+                    <td><span style="font-size:0.72rem; color:var(--text-secondary);">${o.hand || o.bowler_archetype || ''}</span></td>
                     <td>${o.balls || 0}</td>
                     <td>${o.runs || 0}</td>
-                    <td><strong style="color:#EF4444">${o.wickets || 0}</strong></td>
+                    <td><strong style="color:#EF4444">${o.wickets || o.dismissals || 0}</strong></td>
                     <td>${fmt(o.econ, 2)}</td>
                   </tr>
                 `).join('')}

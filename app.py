@@ -390,7 +390,7 @@ def player_audit():
             buf.seek(0)
             init_sp['image_b64'] = base64.b64encode(buf.read()).decode('utf-8')
             plt.close('all')
-            init_sp['role'] = init_role
+            init_sp['role'] = 'Batter' if init_role == 'bat' else 'Bowler'
             init_sp['active_role'] = init_role
             
         res['initial_splits'] = init_sp
