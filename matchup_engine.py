@@ -1108,12 +1108,13 @@ def get_bowler_matchup_splits(player_name: str, batter_hands: list = None, phase
 
     # Filter by hands and phases
     sub_df = df[df['hand'].isin(sel_hands) & df['phase'].isin(sel_phases)]
+    sub_legal = sub_df[sub_df['is_legal_ball'] == 1] if 'is_legal_ball' in sub_df.columns else sub_df
 
-    total_balls = len(sub_df)
-    total_runs = int(sub_df['total_runs_conceded'].sum()) if total_balls > 0 else 0
-    total_wkts = int(sub_df['is_wicket'].sum()) if total_balls > 0 else 0
-    total_dots = int(sub_df['is_dot'].sum()) if total_balls > 0 else 0
-    total_bnds = int(sub_df['is_boundary'].sum()) if total_balls > 0 else 0
+    total_balls = len(sub_legal)
+    total_runs = int(sub_df['total_runs_conceded'].sum()) if len(sub_df) > 0 else 0
+    total_wkts = int(sub_df['is_wicket'].sum()) if len(sub_df) > 0 else 0
+    total_dots = int(sub_df['is_dot'].sum()) if len(sub_df) > 0 else 0
+    total_bnds = int(sub_df['is_boundary'].sum()) if len(sub_df) > 0 else 0
 
     overs_str = f"{total_balls // 6}.{total_balls % 6}"
     econ = round((total_runs * 6.0) / max(1, total_balls), 2)
@@ -1126,10 +1127,11 @@ def get_bowler_matchup_splits(player_name: str, batter_hands: list = None, phase
     phases_data = {}
     for p in ['Powerplay', 'Middle', 'Death']:
         p_df = df[(df['phase'] == p) & (df['hand'].isin(sel_hands))]
-        p_balls = len(p_df)
-        p_runs = int(p_df['total_runs_conceded'].sum()) if p_balls > 0 else 0
-        p_wkts = int(p_df['is_wicket'].sum()) if p_balls > 0 else 0
-        p_dots = int(p_df['is_dot'].sum()) if p_balls > 0 else 0
+        p_legal = p_df[p_df['is_legal_ball'] == 1] if 'is_legal_ball' in p_df.columns else p_df
+        p_balls = len(p_legal)
+        p_runs = int(p_df['total_runs_conceded'].sum()) if len(p_df) > 0 else 0
+        p_wkts = int(p_df['is_wicket'].sum()) if len(p_df) > 0 else 0
+        p_dots = int(p_df['is_dot'].sum()) if len(p_df) > 0 else 0
         p_econ = round((p_runs * 6.0) / max(1, p_balls), 2)
         p_dot_pct = round((p_dots * 100.0) / max(1, p_balls), 1)
         p_sr = round(p_balls / max(1, p_wkts), 1) if p_wkts > 0 else 0.0
@@ -1147,10 +1149,11 @@ def get_bowler_matchup_splits(player_name: str, batter_hands: list = None, phase
     hands_data = []
     for h in all_hands:
         h_df = df[(df['hand'] == h) & (df['phase'].isin(sel_phases))]
-        h_balls = len(h_df)
-        h_runs = int(h_df['total_runs_conceded'].sum()) if h_balls > 0 else 0
-        h_wkts = int(h_df['is_wicket'].sum()) if h_balls > 0 else 0
-        h_dots = int(h_df['is_dot'].sum()) if h_balls > 0 else 0
+        h_legal = h_df[h_df['is_legal_ball'] == 1] if 'is_legal_ball' in h_df.columns else h_df
+        h_balls = len(h_legal)
+        h_runs = int(h_df['total_runs_conceded'].sum()) if len(h_df) > 0 else 0
+        h_wkts = int(h_df['is_wicket'].sum()) if len(h_df) > 0 else 0
+        h_dots = int(h_df['is_dot'].sum()) if len(h_df) > 0 else 0
         h_econ = round((h_runs * 6.0) / max(1, h_balls), 2)
         h_avg = round(h_runs / max(1, h_wkts), 1) if h_wkts > 0 else 0.0
         h_sr = round(h_balls / max(1, h_wkts), 1) if h_wkts > 0 else 0.0
