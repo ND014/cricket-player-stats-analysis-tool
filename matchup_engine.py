@@ -2017,9 +2017,11 @@ def get_batter_wagon_data(player_name: str, vs_bowler_type: str = 'ALL', phase: 
         query += " AND tournament = ?"
         params.append(tournament)
 
-    if phase and phase != 'ALL':
+    if phase and phase.strip().upper() != 'ALL':
+        phase_map = {'POWERPLAY': 'Powerplay', 'MIDDLE': 'Middle', 'DEATH': 'Death'}
+        norm_phase = phase_map.get(phase.strip().upper(), phase.strip().title())
         query += " AND phase = ?"
-        params.append(phase)
+        params.append(norm_phase)
 
     vs_upper = (vs_bowler_type or 'ALL').strip().upper()
     if vs_upper in ['PACE', 'ALL_PACE', 'ALL PACE']:
@@ -2172,7 +2174,7 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase
     else:
         scope_bowler = f"vs {vs_bowler_type}"
         
-    scope_phase = "" if phase == 'ALL' else f" • {phase} Overs"
+    scope_phase = "" if (not phase or phase.upper() == 'ALL') else f" • {phase.title()} Overs"
     scope_str = f"{scope_bowler}{scope_phase}"
 
     print("=" * 88)
