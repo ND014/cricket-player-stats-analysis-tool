@@ -379,13 +379,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isBowlerMode) {
       const b = data.bowling_stats || { phases: {} };
       container.innerHTML = phases.map(ph => {
-        const st = (b.phases && b.phases[ph]) || { econ: 0, dot_pct: 0, wickets: 0 };
+        const st = (b.phases && b.phases[ph]) || { econ: 0, dot_pct: 0, wickets: 0, wides: 0, noballs: 0 };
         const meterPct = Math.min(100, Math.max(10, (12 - st.econ) * 10)); // Higher meter = tighter economy
+        const extrasStr = (st.wides !== undefined || st.noballs !== undefined)
+          ? ` • Extras: <strong>${st.wides || 0}w, ${st.noballs || 0}nb</strong>`
+          : '';
         return `
           <div class="phase-stat-row">
             <div class="phase-label-group">
               <span class="phase-name">${ph} (Overs ${ph === 'Powerplay' ? '1–6' : (ph === 'Middle' ? '7–15' : '16–20')})</span>
-              <span class="phase-metrics">Econ: <strong>${(st.econ || 0).toFixed(2)}</strong> • Dots: <strong>${(st.dot_pct || 0).toFixed(1)}%</strong> • Wkts: <strong>${st.wickets || 0}</strong></span>
+              <span class="phase-metrics">Econ: <strong>${(st.econ || 0).toFixed(2)}</strong> • Dots: <strong>${(st.dot_pct || 0).toFixed(1)}%</strong> • Wkts: <strong>${st.wickets || 0}</strong>${extrasStr}</span>
             </div>
             <div class="meter-track">
               <div class="meter-fill green" style="width: ${meterPct}%"></div>
@@ -557,12 +560,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const thVol = document.getElementById('thFootprintVolume');
     const thRate = document.getElementById('thFootprintRate');
     const thSec = document.getElementById('thFootprintSec');
+    const thExtras = document.getElementById('thFootprintExtras');
     if (thVol) thVol.textContent = isBowlerMode ? 'Overs' : 'Runs';
     if (thRate) thRate.textContent = isBowlerMode ? 'Economy' : 'Strike Rate';
     if (thSec) thSec.textContent = isBowlerMode ? 'Wickets' : 'Average';
+    if (thExtras) thExtras.textContent = isBowlerMode ? 'Wides / NB' : 'Boundaries (4s/6s)';
 
     if (footprint.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-secondary);">No multi-tournament footprint records available.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-secondary);">No multi-tournament footprint records available.</td></tr>';
       return;
     }
 
@@ -570,6 +575,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const volume = isBowlerMode ? `${fmt(r.overs || ((r.balls || 0) / 6.0), 1)} ov` : Math.round(r.runs || 0).toLocaleString();
       const rate = isBowlerMode ? fmt(r.econ, 2) : fmt(r.sr, 1);
       const sec = isBowlerMode ? (r.wickets || 0) : fmt(r.avg, 1);
+      const extrasCol = isBowlerMode
+        ? `<span style="color:var(--amber-gold, #F59E0B);">${r.wides || 0}w, ${r.noballs || 0}nb</span>`
+        : `${(r.boundaries !== undefined ? r.boundaries : ((r.fours || 0) + (r.sixes || 0)))} (${r.fours || 0}x4, ${r.sixes || 0}x6)`;
 
       return `
         <tr>
@@ -579,6 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <td><strong>${rate}</strong></td>
           <td>${sec}</td>
           <td>${fmt(r.dot_pct, 1)}%</td>
+          <td>${extrasCol}</td>
         </tr>
       `;
     }).join('');
@@ -966,6 +975,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="split-kpi-lbl">Runs Conceded</div>
             <div class="split-kpi-sub">${s.boundaries || 0} bnds conceded</div>
           </div>
+          <div class="split-kpi-card">
+            <div class="split-kpi-val highlight-gold">${s.wides || 0}w • ${s.noballs || 0}nb</div>
+            <div class="split-kpi-lbl">Wides & No-Balls</div>
+            <div class="split-kpi-sub">${s.extras !== undefined ? s.extras : ((s.wides || 0) + (s.noballs || 0))} extras (${fmt(s.extras_pct, 1)}% rate)</div>
+          </div>
         `;
       }
     }
@@ -1038,7 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <div class="phase-bar-header">
                 <span>${ph} (Overs ${ph === 'Powerplay' ? '1–6' : (ph === 'Middle' ? '7–15' : '16–20')})</span>
                 <span style="font-family:var(--font-mono, monospace); color:var(--text-secondary); font-size:0.75rem;">
-                  Econ: <strong style="color:var(--text-primary); font-size:0.85rem;">${fmt(p.econ, 2)}</strong> • ${p.wickets || 0} wkts • ${p.runs || 0}r (${p.balls || 0}b) • ${fmt(p.dot_pct, 1)}% dots
+                  Econ: <strong style="color:var(--text-primary); font-size:0.85rem;">${fmt(p.econ, 2)}</strong> • ${p.wickets || 0} wkts • ${p.runs || 0}r (${p.balls || 0}b) • ${fmt(p.dot_pct, 1)}% dots • <span style="color:var(--amber-gold, #F59E0B); font-weight:600;">${p.wides || 0}w, ${p.noballs || 0}nb</span>
                 </span>
               </div>
               <div class="phase-bar-track">
@@ -1140,6 +1154,8 @@ document.addEventListener('DOMContentLoaded', () => {
                   <th>Avg</th>
                   <th>SR</th>
                   <th>Dot %</th>
+                  <th>Wides</th>
+                  <th>No-Balls</th>
                 </tr>
               </thead>
               <tbody>
@@ -1153,6 +1169,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${fmt(h.avg, 1)}</td>
                     <td>${fmt(h.sr, 1)}</td>
                     <td>${fmt(h.dot_pct, 1)}%</td>
+                    <td style="color:var(--amber-gold, #F59E0B);">${h.wides || 0}</td>
+                    <td style="color:#EF4444;">${h.noballs || 0}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -1172,6 +1190,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   <th>Runs</th>
                   <th>Wkts</th>
                   <th>Econ</th>
+                  <th>Wides / NB</th>
                 </tr>
               </thead>
               <tbody>
@@ -1183,6 +1202,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${o.runs || 0}</td>
                     <td><strong style="color:#EF4444">${o.wickets || o.dismissals || 0}</strong></td>
                     <td>${fmt(o.econ, 2)}</td>
+                    <td><span style="color:var(--amber-gold, #F59E0B); font-size:0.78rem;">${o.wides || 0}w, ${o.noballs || 0}nb</span></td>
                   </tr>
                 `).join('')}
               </tbody>

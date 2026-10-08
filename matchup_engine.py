@@ -703,6 +703,13 @@ def get_bowler_phase_stats(player_name: str, df: pd.DataFrame, vs_batter_hand: s
     dot_pct = round((total_dots / max(1, total_balls)) * 100.0, 1) if total_balls > 0 else 0.0
     bnd_pct = round((total_bnd / max(1, total_balls)) * 100.0, 1) if total_balls > 0 else 0.0
 
+    total_wides = int(b_df['wides'].sum()) if 'wides' in b_df.columns else 0
+    total_noballs = int(b_df['noballs'].sum()) if 'noballs' in b_df.columns else 0
+    total_extras = total_wides + total_noballs
+    wides_pct = round((total_wides * 100.0) / max(1, total_balls), 1) if total_balls > 0 else 0.0
+    noballs_pct = round((total_noballs * 100.0) / max(1, total_balls), 1) if total_balls > 0 else 0.0
+    extras_pct = round((total_extras * 100.0) / max(1, total_balls), 1) if total_balls > 0 else 0.0
+
     phase_records = {}
     for ph in ['Powerplay', 'Middle', 'Death']:
         p_df = b_df[b_df['phase'] == ph]
@@ -711,10 +718,14 @@ def get_bowler_phase_stats(player_name: str, df: pd.DataFrame, vs_batter_hand: s
         p_wkts = int(p_df['is_wicket'].sum()) if len(p_df) > 0 else 0
         p_dots = int(p_df['is_dot'].sum()) if 'is_dot' in p_df.columns else 0
         p_bnd = int(p_df['is_boundary'].sum()) if 'is_boundary' in p_df.columns else 0
+        p_wides = int(p_df['wides'].sum()) if 'wides' in p_df.columns else 0
+        p_noballs = int(p_df['noballs'].sum()) if 'noballs' in p_df.columns else 0
+        p_extras = p_wides + p_noballs
 
         p_econ = (p_runs / (p_legal / 6.0)) if p_legal > 0 else 0.0
         p_dot_pct = (p_dots / max(1, p_legal)) * 100.0 if p_legal > 0 else 0.0
         p_bnd_pct = (p_bnd / max(1, p_legal)) * 100.0 if p_legal > 0 else 0.0
+        p_extras_pct = round((p_extras * 100.0) / max(1, p_legal), 1) if p_legal > 0 else 0.0
         p_sr = (p_legal / p_wkts) if p_wkts > 0 else 0.0
 
         phase_records[ph] = {
@@ -724,6 +735,10 @@ def get_bowler_phase_stats(player_name: str, df: pd.DataFrame, vs_batter_hand: s
             'wickets': p_wkts,
             'dots': p_dots,
             'boundaries': p_bnd,
+            'wides': p_wides,
+            'noballs': p_noballs,
+            'extras': p_extras,
+            'extras_pct': p_extras_pct,
             'econ': round(p_econ, 2),
             'sr': round(p_sr, 1),
             'dot_pct': round(p_dot_pct, 1),
@@ -737,6 +752,12 @@ def get_bowler_phase_stats(player_name: str, df: pd.DataFrame, vs_batter_hand: s
         'total_wickets': total_wkts,
         'total_dots': total_dots,
         'total_boundaries': total_bnd,
+        'total_wides': total_wides,
+        'total_noballs': total_noballs,
+        'total_extras': total_extras,
+        'wides_pct': wides_pct,
+        'noballs_pct': noballs_pct,
+        'extras_pct': extras_pct,
         'overall_econ': round(overall_econ, 2),
         'overall_sr': round(overall_sr, 1),
         'overall_avg': round(overall_avg, 1),
@@ -833,12 +854,18 @@ def get_player_tournament_footprint(player_name: str, df: pd.DataFrame, is_bowle
             balls=('is_legal_ball', 'sum'),
             runs=('total_runs_conceded', 'sum'),
             wickets=('is_wicket', 'sum'),
-            dots=('is_dot', 'sum')
+            dots=('is_dot', 'sum'),
+            wides=('wides', 'sum'),
+            noballs=('noballs', 'sum')
         ).reset_index()
         g['overs'] = (g['balls'] / 6.0).round(1)
         g['econ'] = (g['runs'] / (g['balls'] / 6.0)).round(2)
         g['sr'] = (g['balls'] / g['wickets'].replace(0, np.nan)).round(1).fillna(999.0)
         g['dot_pct'] = (g['dots'] / g['balls'] * 100.0).round(1)
+        g['wides'] = g['wides'].fillna(0).astype(int)
+        g['noballs'] = g['noballs'].fillna(0).astype(int)
+        g['extras'] = (g['wides'] + g['noballs']).astype(int)
+        g['extras_pct'] = ((g['extras'] / g['balls'].replace(0, 1)) * 100.0).round(1)
         return g.sort_values(by='wickets', ascending=False)
     else:
         sub = df[df['striker'] == player_name]
@@ -849,11 +876,16 @@ def get_player_tournament_footprint(player_name: str, df: pd.DataFrame, is_bowle
             balls=('is_legal_ball', 'sum'),
             runs=('runs_off_bat', 'sum'),
             outs=('is_wicket', 'sum'),
-            dots=('is_dot', 'sum')
+            dots=('is_dot', 'sum'),
+            fours=('runs_off_bat', lambda s: (s == 4).sum()),
+            sixes=('runs_off_bat', lambda s: (s == 6).sum())
         ).reset_index()
         g['sr'] = (g['runs'] / g['balls'].replace(0, 1) * 100.0).round(1)
         g['avg'] = (g['runs'] / g['outs'].replace(0, 1)).round(1)
         g['dot_pct'] = (g['dots'] / g['balls'].replace(0, 1) * 100.0).round(1)
+        g['fours'] = g['fours'].fillna(0).astype(int)
+        g['sixes'] = g['sixes'].fillna(0).astype(int)
+        g['boundaries'] = (g['fours'] + g['sixes']).astype(int)
         return g.sort_values(by='runs', ascending=False)
 
 
@@ -1090,7 +1122,7 @@ def get_bowler_matchup_splits(player_name: str, batter_hands: list = None, phase
             is_all_phases = (len(sel_phases) == len(all_phases))
 
     query = """
-        SELECT striker, phase, total_runs_conceded, runs_off_bat, is_dot, is_boundary, is_wicket, is_legal_ball
+        SELECT striker, phase, total_runs_conceded, runs_off_bat, is_dot, is_boundary, is_wicket, is_legal_ball, wides, noballs
         FROM deliveries
         WHERE bowler = ?
     """
@@ -1115,6 +1147,9 @@ def get_bowler_matchup_splits(player_name: str, batter_hands: list = None, phase
     total_wkts = int(sub_df['is_wicket'].sum()) if len(sub_df) > 0 else 0
     total_dots = int(sub_df['is_dot'].sum()) if len(sub_df) > 0 else 0
     total_bnds = int(sub_df['is_boundary'].sum()) if len(sub_df) > 0 else 0
+    total_wides = int(sub_df['wides'].sum()) if 'wides' in sub_df.columns else 0
+    total_noballs = int(sub_df['noballs'].sum()) if 'noballs' in sub_df.columns else 0
+    total_extras = total_wides + total_noballs
 
     overs_str = f"{total_balls // 6}.{total_balls % 6}"
     econ = round((total_runs * 6.0) / max(1, total_balls), 2)
@@ -1122,6 +1157,9 @@ def get_bowler_matchup_splits(player_name: str, batter_hands: list = None, phase
     sr = round(total_balls / max(1, total_wkts), 1) if total_wkts > 0 else 0.0
     dot_pct = round((total_dots * 100.0) / max(1, total_balls), 1)
     bnd_pct = round((total_bnds * 100.0) / max(1, total_balls), 1)
+    wides_pct = round((total_wides * 100.0) / max(1, total_balls), 1) if total_balls > 0 else 0.0
+    noballs_pct = round((total_noballs * 100.0) / max(1, total_balls), 1) if total_balls > 0 else 0.0
+    extras_pct = round((total_extras * 100.0) / max(1, total_balls), 1) if total_balls > 0 else 0.0
 
     # Phase breakdown
     phases_data = {}
@@ -1132,14 +1170,22 @@ def get_bowler_matchup_splits(player_name: str, batter_hands: list = None, phase
         p_runs = int(p_df['total_runs_conceded'].sum()) if len(p_df) > 0 else 0
         p_wkts = int(p_df['is_wicket'].sum()) if len(p_df) > 0 else 0
         p_dots = int(p_df['is_dot'].sum()) if len(p_df) > 0 else 0
+        p_wides = int(p_df['wides'].sum()) if 'wides' in p_df.columns else 0
+        p_noballs = int(p_df['noballs'].sum()) if 'noballs' in p_df.columns else 0
+        p_extras = p_wides + p_noballs
         p_econ = round((p_runs * 6.0) / max(1, p_balls), 2)
         p_dot_pct = round((p_dots * 100.0) / max(1, p_balls), 1)
+        p_extras_pct = round((p_extras * 100.0) / max(1, p_balls), 1) if p_balls > 0 else 0.0
         p_sr = round(p_balls / max(1, p_wkts), 1) if p_wkts > 0 else 0.0
         phases_data[p] = {
             'balls': p_balls,
             'runs': p_runs,
             'wickets': p_wkts,
             'dots': p_dots,
+            'wides': p_wides,
+            'noballs': p_noballs,
+            'extras': p_extras,
+            'extras_pct': p_extras_pct,
             'econ': p_econ,
             'dot_pct': p_dot_pct,
             'sr': p_sr
@@ -1154,15 +1200,23 @@ def get_bowler_matchup_splits(player_name: str, batter_hands: list = None, phase
         h_runs = int(h_df['total_runs_conceded'].sum()) if len(h_df) > 0 else 0
         h_wkts = int(h_df['is_wicket'].sum()) if len(h_df) > 0 else 0
         h_dots = int(h_df['is_dot'].sum()) if len(h_df) > 0 else 0
+        h_wides = int(h_df['wides'].sum()) if 'wides' in h_df.columns else 0
+        h_noballs = int(h_df['noballs'].sum()) if 'noballs' in h_df.columns else 0
+        h_extras = h_wides + h_noballs
         h_econ = round((h_runs * 6.0) / max(1, h_balls), 2)
         h_avg = round(h_runs / max(1, h_wkts), 1) if h_wkts > 0 else 0.0
         h_sr = round(h_balls / max(1, h_wkts), 1) if h_wkts > 0 else 0.0
         h_dot_pct = round((h_dots * 100.0) / max(1, h_balls), 1)
+        h_extras_pct = round((h_extras * 100.0) / max(1, h_balls), 1) if h_balls > 0 else 0.0
         hands_data.append({
             'hand': h,
             'balls': h_balls,
             'runs': h_runs,
             'wickets': h_wkts,
+            'wides': h_wides,
+            'noballs': h_noballs,
+            'extras': h_extras,
+            'extras_pct': h_extras_pct,
             'econ': h_econ,
             'avg': h_avg,
             'sr': h_sr,
@@ -1176,10 +1230,14 @@ def get_bowler_matchup_splits(player_name: str, batter_hands: list = None, phase
             balls=('is_legal_ball', 'count'),
             runs=('total_runs_conceded', 'sum'),
             dots=('is_dot', 'sum'),
-            wickets=('is_wicket', 'sum')
+            wickets=('is_wicket', 'sum'),
+            wides=('wides', 'sum'),
+            noballs=('noballs', 'sum')
         ).reset_index()
         g['econ'] = (g['runs'] * 6.0 / g['balls']).round(2)
         g['sr'] = (g['runs'] * 100.0 / g['balls']).round(1)
+        g['wides'] = g['wides'].fillna(0).astype(int)
+        g['noballs'] = g['noballs'].fillna(0).astype(int)
         g = g.sort_values(by=['wickets', 'balls'], ascending=[False, False]).head(5)
         top_batters = g.to_dict(orient='records')
 
@@ -1196,6 +1254,12 @@ def get_bowler_matchup_splits(player_name: str, batter_hands: list = None, phase
             'wickets': total_wkts,
             'dots': total_dots,
             'boundaries': total_bnds,
+            'wides': total_wides,
+            'noballs': total_noballs,
+            'extras': total_extras,
+            'wides_pct': wides_pct,
+            'noballs_pct': noballs_pct,
+            'extras_pct': extras_pct,
             'econ': econ,
             'avg': avg,
             'sr': sr,
