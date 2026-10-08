@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     currentPlayer: 'Virat Kohli',
     currentTournament: 'ALL',
     wagonBowlerType: 'ALL',
+    wagonPhase: 'ALL',
     defPhase: 'ALL',
     defHand: 'ALL',
     compP1: 'Virat Kohli',
@@ -68,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Wagon Controls
   const wagonArchetypeSelect = document.getElementById('wagonArchetypeSelect');
+  const wagonPhaseSelect = document.getElementById('wagonPhaseSelect');
   const refreshWagonBtn = document.getElementById('refreshWagonBtn');
 
   // Defensive Controls
@@ -113,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (tabId === 'tab-dossier') {
       loadPlayerAudit(state.currentPlayer);
     } else if (tabId === 'tab-wagon') {
-      loadWagonWheel(state.currentPlayer, state.wagonBowlerType);
+      loadWagonWheel(state.currentPlayer, state.wagonBowlerType, state.wagonPhase);
     } else if (tabId === 'tab-defensive') {
       loadDefensiveWheel(state.currentPlayer, state.defPhase, state.defHand);
     } else if (tabId === 'tab-compare') {
@@ -1194,22 +1196,34 @@ document.addEventListener('DOMContentLoaded', () => {
   if (wagonArchetypeSelect) {
     wagonArchetypeSelect.addEventListener('change', () => {
       state.wagonBowlerType = wagonArchetypeSelect.value;
-      loadWagonWheel(state.currentPlayer, state.wagonBowlerType);
+      loadWagonWheel(state.currentPlayer, state.wagonBowlerType, state.wagonPhase);
+    });
+  }
+
+  if (wagonPhaseSelect) {
+    wagonPhaseSelect.addEventListener('change', () => {
+      state.wagonPhase = wagonPhaseSelect.value;
+      loadWagonWheel(state.currentPlayer, state.wagonBowlerType, state.wagonPhase);
     });
   }
 
   if (refreshWagonBtn) {
     refreshWagonBtn.addEventListener('click', () => {
       if (wagonArchetypeSelect) state.wagonBowlerType = wagonArchetypeSelect.value;
-      loadWagonWheel(state.currentPlayer, state.wagonBowlerType);
+      if (wagonPhaseSelect) state.wagonPhase = wagonPhaseSelect.value;
+      loadWagonWheel(state.currentPlayer, state.wagonBowlerType, state.wagonPhase);
     });
   }
 
-  async function loadWagonWheel(playerName, bowlerType) {
-    showLoading(`Generating pro wagon wheel for ${playerName} vs [${bowlerType}]...`);
+  async function loadWagonWheel(playerName, bowlerType, phase = 'ALL') {
+    const scopeLabel = `${bowlerType !== 'ALL' ? bowlerType : 'All Bowlers'}${phase !== 'ALL' ? ` (${phase})` : ''}`;
+    showLoading(`Generating pro wagon wheel for ${playerName} vs [${scopeLabel}]...`);
     try {
-      const res = await fetch(`/api/player/wagon?name=${encodeURIComponent(playerName)}&bowler_type=${bowlerType}&tournament=${state.currentTournament}`);
-      if (!res.ok) throw new Error(`Could not generate wagon wheel for ${playerName} vs ${bowlerType}`);
+      const res = await fetch(`/api/player/wagon?name=${encodeURIComponent(playerName)}&bowler_type=${encodeURIComponent(bowlerType)}&phase=${encodeURIComponent(phase)}&tournament=${encodeURIComponent(state.currentTournament)}`);
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `Could not generate wagon wheel for ${playerName} vs ${scopeLabel}`);
+      }
       const data = await res.json();
       renderWagonWheel(data);
     } catch (err) {
@@ -1225,11 +1239,16 @@ document.addEventListener('DOMContentLoaded', () => {
     imgEl.src = `data:image/png;base64,${data.image_b64}`;
 
     // 2. Titles and badges
-    const scopeStr = data.vs_bowler_type === 'ALL' ? 'All Bowlers' : `vs ${data.vs_bowler_type}`;
+    const bowlTypeStr = (data.vs_bowler_type === 'ALL' ? 'All Bowlers' : (data.vs_bowler_type === 'PACE' ? 'All Pace' : (data.vs_bowler_type === 'SPIN' ? 'All Spin' : `vs ${data.vs_bowler_type}`)));
+    const phaseStr = (data.phase && data.phase !== 'ALL') ? ` • ${data.phase} Phase` : '';
+    const scopeStr = `${bowlTypeStr}${phaseStr}`;
     document.getElementById('wagonVisualTitle').textContent = `${data.cric_name} (${data.is_lhb ? 'LHB' : 'RHB'}) — Scoring Distribution (${scopeStr})`;
 
     if (wagonArchetypeSelect && data.vs_bowler_type) {
       wagonArchetypeSelect.value = data.vs_bowler_type;
+    }
+    if (wagonPhaseSelect && data.phase) {
+      wagonPhaseSelect.value = data.phase;
     }
 
     if (data.dominant_sector) {

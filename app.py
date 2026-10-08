@@ -455,18 +455,20 @@ def player_splits():
 def batter_wagon():
     player_query = request.args.get('name', 'Virat Kohli').strip()
     vs_bowler_type = request.args.get('bowler_type', 'ALL').strip()
+    phase = request.args.get('phase', 'ALL').strip()
     tournament = request.args.get('tournament', 'ALL').strip()
     
     cric_name = resolve_player_name(player_query)
-    data = get_batter_wagon_data(cric_name, vs_bowler_type=vs_bowler_type, tournament=tournament)
+    data = get_batter_wagon_data(cric_name, vs_bowler_type=vs_bowler_type, phase=phase, tournament=tournament)
     
     if data is None:
-        return jsonify({'error': f"No batting data found for {player_query} vs {vs_bowler_type} in {tournament}."}), 404
+        phase_str = f" in {phase} phase" if phase != 'ALL' else ""
+        return jsonify({'error': f"No batting data found for {player_query} vs {vs_bowler_type}{phase_str} in {tournament}."}), 404
         
     # Generate high-res image
     buf = io.BytesIO()
     plt.close('all')
-    plot_batter_wagon_wheel(cric_name, vs_bowler_type=vs_bowler_type, tournament=tournament, show_plot=True, save_path=buf)
+    plot_batter_wagon_wheel(cric_name, vs_bowler_type=vs_bowler_type, phase=phase, tournament=tournament, show_plot=True, save_path=buf)
     buf.seek(0)
     img_b64 = base64.b64encode(buf.read()).decode('utf-8')
     plt.close('all')
@@ -477,6 +479,7 @@ def batter_wagon():
         'cric_name': cric_name,
         'player_query': player_query,
         'vs_bowler_type': vs_bowler_type,
+        'phase': phase,
         'tournament': tournament,
         'is_lhb': data['is_lhb'],
         'total_runs': data['total_runs'],

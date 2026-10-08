@@ -1998,10 +1998,11 @@ _PACE_P4 = _PC_4 / _PC_4.sum()
 _PACE_P1 = _PC_1 / _PC_1.sum()
 
 
-def get_batter_wagon_data(player_name: str, vs_bowler_type: str = 'ALL', tournament: str = 'ALL') -> dict:
+def get_batter_wagon_data(player_name: str, vs_bowler_type: str = 'ALL', phase: str = 'ALL', tournament: str = 'ALL') -> dict:
     """
     Computes sector run distribution and simulated shot trajectories for a batsman.
-    Supports filtering by bowler archetype (e.g. 'LAF', 'SLA', 'WRIST_SPIN', 'RAF', 'OFF_SPIN').
+    Supports filtering by bowler archetype ('PACE', 'SPIN', 'LAF', 'SLA', 'WRIST_SPIN', etc.)
+    and match phase ('Powerplay', 'Middle', 'Death').
     """
     cric_name = resolve_player_name(player_name)
     conn = get_t20_db_connection()
@@ -2012,10 +2013,20 @@ def get_batter_wagon_data(player_name: str, vs_bowler_type: str = 'ALL', tournam
         WHERE striker = ?
     """
     params = [cric_name]
-    if tournament != 'ALL':
+    if tournament and tournament != 'ALL':
         query += " AND tournament = ?"
         params.append(tournament)
-    if vs_bowler_type != 'ALL':
+
+    if phase and phase != 'ALL':
+        query += " AND phase = ?"
+        params.append(phase)
+
+    vs_upper = (vs_bowler_type or 'ALL').strip().upper()
+    if vs_upper in ['PACE', 'ALL_PACE', 'ALL PACE']:
+        query += " AND bowler_archetype IN ('LAF', 'RAF', 'LAM', 'RAM')"
+    elif vs_upper in ['SPIN', 'ALL_SPIN', 'ALL SPIN']:
+        query += " AND bowler_archetype IN ('OFF_SPIN', 'SLA', 'WRIST_SPIN', 'LEFT_WRIST_SPIN')"
+    elif vs_upper != 'ALL':
         query += " AND bowler_archetype = ?"
         params.append(vs_bowler_type)
 
@@ -2034,7 +2045,7 @@ def get_batter_wagon_data(player_name: str, vs_bowler_type: str = 'ALL', tournam
     meta = auto_detect_player_meta(cric_name, df)
     is_lhb = (meta.get('hand') == 'LHB')
 
-    seed_val = int(abs(hash(cric_name + vs_bowler_type)) % (2**31 - 1))
+    seed_val = int(abs(hash(cric_name + str(vs_bowler_type) + str(phase))) % (2**31 - 1))
     np.random.seed(seed_val)
 
     sector_runs = {s['short']: 0 for s in SECTORS_LAYOUT}
@@ -2115,6 +2126,7 @@ def get_batter_wagon_data(player_name: str, vs_bowler_type: str = 'ALL', tournam
     return {
         'player_name': cric_name,
         'vs_bowler_type': vs_bowler_type,
+        'phase': phase,
         'tournament': tournament,
         'total_runs': total_runs,
         'total_balls': total_balls,
@@ -2129,17 +2141,18 @@ def get_batter_wagon_data(player_name: str, vs_bowler_type: str = 'ALL', tournam
     }
 
 
-def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', tournament: str = 'ALL', show_plot: bool = True, save_path: str = None):
+def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase: str = 'ALL', tournament: str = 'ALL', show_plot: bool = True, save_path: str = None):
     """
     Renders an interactive Wagon Wheel for a batsman with percentage of runs scored in each sector.
-    Allows filtering by bowler archetype (e.g. 'LAF', 'SLA', 'WRIST_SPIN', 'RAF', 'OFF_SPIN').
+    Allows filtering by bowler archetype ('PACE', 'SPIN', 'LAF', 'SLA', 'WRIST_SPIN', etc.)
+    and match phase ('Powerplay', 'Middle', 'Death').
     """
     cric_name = resolve_player_name(player_name)
     full_name = get_player_full_name(cric_name)
-    data = get_batter_wagon_data(cric_name, vs_bowler_type=vs_bowler_type, tournament=tournament)
+    data = get_batter_wagon_data(cric_name, vs_bowler_type=vs_bowler_type, phase=phase, tournament=tournament)
 
     if data is None:
-        print(f"[!] No deliveries found for '{cric_name}' vs [{vs_bowler_type}] in tournament '{tournament}'.")
+        print(f"[!] No deliveries found for '{cric_name}' vs [{vs_bowler_type}] in {phase} phase in tournament '{tournament}'.")
         return None
 
     t_runs = data['total_runs']
@@ -2148,7 +2161,19 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', tourn
     dot_pct = round(data['total_dots'] * 100.0 / max(1, t_balls), 1)
     bnd_pct = round((data['total_fours'] + data['total_sixes']) * 100.0 / max(1, t_balls), 1)
     stance = "LHB" if data['is_lhb'] else "RHB"
-    scope_str = "All Bowlers" if vs_bowler_type == 'ALL' else f"vs {vs_bowler_type}"
+    
+    vs_upper = (vs_bowler_type or 'ALL').strip().upper()
+    if vs_upper in ['PACE', 'ALL_PACE']:
+        scope_bowler = "All Pace"
+    elif vs_upper in ['SPIN', 'ALL_SPIN']:
+        scope_bowler = "All Spin"
+    elif vs_upper == 'ALL':
+        scope_bowler = "All Bowlers"
+    else:
+        scope_bowler = f"vs {vs_bowler_type}"
+        
+    scope_phase = "" if phase == 'ALL' else f" • {phase} Overs"
+    scope_str = f"{scope_bowler}{scope_phase}"
 
     print("=" * 88)
     print(f"[*] PRO WAGON WHEEL AUDIT: {full_name.upper()} ({stance}) | {scope_str}")
@@ -2206,9 +2231,17 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', tourn
         y = radius * np.sin(rad)
         ax1.plot([0, x], [0, y], color='#1E293B', ls=':', lw=0.7, alpha=0.5, zorder=2)
 
-    # Draw shots
+    # Draw shots - Prioritize boundaries so boundaries are vividly and densely illustrated
     shots = data['shots']
-    sample_shots = shots if len(shots) <= 120 else list(np.random.choice(shots, size=120, replace=False))
+    sixes = [s for s in shots if s['runs'] == 6]
+    fours = [s for s in shots if s['runs'] == 4]
+    singles = [s for s in shots if s['runs'] in [1, 2, 3]]
+
+    # Sample up to 120 sixes, 180 fours, and 60 singles for rich visual density
+    sample_sixes = sixes if len(sixes) <= 120 else list(np.random.choice(sixes, size=120, replace=False))
+    sample_fours = fours if len(fours) <= 180 else list(np.random.choice(fours, size=180, replace=False))
+    sample_singles = singles if len(singles) <= 60 else list(np.random.choice(singles, size=60, replace=False))
+    sample_shots = sample_singles + sample_fours + sample_sixes
 
     for sh in sample_shots:
         ang = sh['angle']
@@ -2217,17 +2250,17 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', tourn
         rad = np.radians(ang)
 
         if r == 6:
-            d_plot = min(dist, radius * 1.03)
+            d_plot = min(dist, radius * 1.04)
             tx = d_plot * np.cos(rad)
             ty = d_plot * np.sin(rad)
-            ax1.plot([0, tx], [-7.0, ty], color='#F43F5E', alpha=0.75, lw=1.5, zorder=5)
-            ax1.scatter([tx], [ty], marker='o', color='#F43F5E', s=22, zorder=7)
+            ax1.plot([0, tx], [-7.0, ty], color='#F43F5E', alpha=0.82, lw=1.6, zorder=6)
+            ax1.scatter([tx], [ty], marker='o', color='#F43F5E', s=24, ec='#FFFFFF', lw=0.5, zorder=8)
         elif r == 4:
             d_plot = min(dist, radius * 0.98)
             tx = d_plot * np.cos(rad)
             ty = d_plot * np.sin(rad)
-            ax1.plot([0, tx], [-7.0, ty], color='#F59E0B', alpha=0.65, lw=1.2, zorder=5)
-            ax1.scatter([tx], [ty], marker='o', color='#F59E0B', s=16, zorder=6)
+            ax1.plot([0, tx], [-7.0, ty], color='#F59E0B', alpha=0.72, lw=1.3, zorder=5)
+            ax1.scatter([tx], [ty], marker='o', color='#F59E0B', s=16, ec='#FEF08A', lw=0.4, zorder=7)
         else: # 1s/2s
             d_plot = min(dist, radius * 0.68)
             tx = d_plot * np.cos(rad)
@@ -2264,7 +2297,7 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', tourn
 
     ax1.text(0, radius * 1.34, f"{full_name} ({stance}) — Wagon Wheel", ha='center', va='bottom',
              fontsize=12, fontweight='bold', color='#F8FAFC')
-    ax1.text(0, radius * 1.25, f"{scope_str}  •  {t_runs:,} Runs ({t_balls:,}b)  •  {sr:.1f} Strike Rate  •  {bnd_pct}% Boundaries",
+    ax1.text(0, radius * 1.25, f"{scope_str}  •  {t_runs:,} Runs ({t_balls:,}b)  •  {data['total_fours']}x4, {data['total_sixes']}x6  •  {sr:.1f} SR",
              ha='center', va='bottom', fontsize=8.8, color='#94A3B8')
 
     # ---------------------------------------------------------
