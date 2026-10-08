@@ -2301,11 +2301,11 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase
     shots = data['shots']
     summary = data['summary']
 
-    # Proportional sampling: allocate ~75 total shots across sectors based on run contribution
-    # This emphasizes majority scoring zones (fours & sixes) cleanly without visual clutter
-    target_fours = 38
-    target_sixes = 24
-    target_singles = 12
+    # Proportional sampling: allocate balanced shots across sectors based on run contribution
+    # Ensures boundaries and ground 1s/2s/3s are both clearly visible and uncongested
+    target_fours = 34
+    target_sixes = 20
+    target_singles = 32
     sample_shots = []
 
     for _, s_row in summary.iterrows():
@@ -2318,7 +2318,7 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase
 
         n_6 = max(1 if len(sec_6s) > 0 and pct > 0.05 else 0, int(round(target_sixes * pct)))
         n_4 = max(1 if len(sec_4s) > 0 and pct > 0.05 else 0, int(round(target_fours * pct)))
-        n_1 = max(1 if len(sec_1s) > 0 and pct > 0.08 else 0, int(round(target_singles * pct)))
+        n_1 = max(1 if len(sec_1s) > 0 else 0, int(round(target_singles * pct)))
 
         if len(sec_6s) > 0:
             sample_shots.extend(list(np.random.choice(sec_6s, size=min(len(sec_6s), n_6), replace=False)))
@@ -2348,11 +2348,12 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase
             ty = d_plot * np.sin(rad)
             ax1.plot([0, tx], [-7.0, ty], color='#F59E0B', alpha=0.75, lw=1.0, zorder=5)
             ax1.scatter([tx], [ty], marker='o', color='#F59E0B', s=12, ec='#FEF08A', lw=0.3, zorder=7)
-        else: # 1s/2s
-            d_plot = min(dist, radius * 0.68)
+        else: # 1s/2s/3s ground shots
+            d_plot = min(dist, radius * 0.70)
             tx = d_plot * np.cos(rad)
             ty = d_plot * np.sin(rad)
-            ax1.plot([0, tx], [-7.0, ty], color='#38BDF8', alpha=0.18, lw=0.6, zorder=4)
+            ax1.plot([0, tx], [-7.0, ty], color='#38BDF8', alpha=0.58, lw=0.95, zorder=4)
+            ax1.scatter([tx], [ty], marker='o', color='#38BDF8', s=8, ec='#BAE6FD', lw=0.3, alpha=0.85, zorder=6)
 
     # Perimeter Sector Labels (Clean typography without boxes)
     for _, s_row in data['summary'].iterrows():
@@ -2434,7 +2435,7 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase
     legend_elements = [
         Line2D([0], [0], color='#F43F5E', marker='o', linestyle='None', markersize=6, label='Six (6)'),
         Line2D([0], [0], color='#F59E0B', marker='o', linestyle='None', markersize=5, label='Four (4)'),
-        Line2D([0], [0], color='#38BDF8', lw=1.2, label='1s / 2s / 3s')
+        Line2D([0], [0], color='#38BDF8', marker='o', linestyle='-', markersize=4, lw=1.1, label='1s / 2s / 3s')
     ]
     ax2.legend(handles=legend_elements, loc='lower right', facecolor='#1F2937', edgecolor='#374151',
                labelcolor='#D1D5DB', fontsize=8, framealpha=0.9)
@@ -2681,12 +2682,12 @@ def plot_bowler_defensive_wheel(player_name: str, vs_batter_hand: str = 'ALL', p
         y = radius * np.sin(rad)
         ax1.plot([0, x], [0, y], color='#1E293B', ls=':', lw=0.7, alpha=0.5, zorder=2)
 
-    # Conceded shots - Proportional uncongested sampling (~70 representative vectors)
+    # Conceded shots - Proportional balanced sampling (~80 representative vectors)
     shots = data['shots']
     summary = data['summary']
-    target_fours = 36
-    target_sixes = 22
-    target_singles = 12
+    target_fours = 34
+    target_sixes = 20
+    target_singles = 30
     sample_shots = []
 
     for _, s_row in summary.iterrows():
@@ -2699,7 +2700,7 @@ def plot_bowler_defensive_wheel(player_name: str, vs_batter_hand: str = 'ALL', p
 
         n_6 = max(1 if len(sec_6s) > 0 and pct > 0.05 else 0, int(round(target_sixes * pct)))
         n_4 = max(1 if len(sec_4s) > 0 and pct > 0.05 else 0, int(round(target_fours * pct)))
-        n_1 = max(1 if len(sec_1s) > 0 and pct > 0.08 else 0, int(round(target_singles * pct)))
+        n_1 = max(1 if len(sec_1s) > 0 else 0, int(round(target_singles * pct)))
 
         if len(sec_6s) > 0:
             sample_shots.extend(list(np.random.choice(sec_6s, size=min(len(sec_6s), n_6), replace=False)))
@@ -2728,11 +2729,12 @@ def plot_bowler_defensive_wheel(player_name: str, vs_batter_hand: str = 'ALL', p
             ty = d_plot * np.sin(rad)
             ax1.plot([0, tx], [-7.0, ty], color='#F59E0B', alpha=0.72, lw=1.0, zorder=5)
             ax1.scatter([tx], [ty], marker='o', color='#F59E0B', s=12, zorder=6)
-        else: # 1s/2s
-            d_plot = min(dist, radius * 0.68)
+        else: # 1s/2s/3s conceded
+            d_plot = min(dist, radius * 0.70)
             tx = d_plot * np.cos(rad)
             ty = d_plot * np.sin(rad)
-            ax1.plot([0, tx], [-7.0, ty], color='#60A5FA', alpha=0.18, lw=0.6, zorder=4)
+            ax1.plot([0, tx], [-7.0, ty], color='#60A5FA', alpha=0.58, lw=0.95, zorder=4)
+            ax1.scatter([tx], [ty], marker='o', color='#60A5FA', s=8, ec='#93C5FD', lw=0.3, alpha=0.85, zorder=6)
 
     # Wickets Induced Markers
     all_wkts = data['wickets']
@@ -2814,7 +2816,8 @@ def plot_bowler_defensive_wheel(player_name: str, vs_batter_hand: str = 'ALL', p
     legend_elements = [
         Line2D([0], [0], color='#10B981', marker='X', linestyle='None', markersize=7, label=f'Wickets Induced ({total_w})'),
         Line2D([0], [0], color='#F43F5E', marker='o', linestyle='None', markersize=6, label='Six Conceded'),
-        Line2D([0], [0], color='#F59E0B', marker='o', linestyle='None', markersize=5, label='Four Conceded')
+        Line2D([0], [0], color='#F59E0B', marker='o', linestyle='None', markersize=5, label='Four Conceded'),
+        Line2D([0], [0], color='#60A5FA', marker='o', linestyle='-', markersize=4, lw=1.1, label='1s / 2s / 3s')
     ]
     ax2.legend(handles=legend_elements, loc='lower right', facecolor='#1F2937', edgecolor='#374151',
                labelcolor='#D1D5DB', fontsize=8, framealpha=0.9)
