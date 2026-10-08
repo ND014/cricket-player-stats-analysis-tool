@@ -265,14 +265,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const meta = data.meta || {};
     const role = meta.role || 'Batter';
     const isBowler = (role === 'Bowler');
-    const hasBatting = data.batting_stats && ((data.batting_stats.total_balls || 0) > 0 || (data.batting_stats.total_runs || 0) > 0);
-    const hasBowling = data.bowling_stats && ((data.bowling_stats.total_balls || 0) > 0 || (data.bowling_stats.total_wickets || 0) > 0);
-    const isAllRounder = (role === 'All-Rounder') || (hasBatting && hasBowling && ((data.bowling_stats && data.bowling_stats.total_overs >= 5) || false));
+    // Use server-computed flags (threshold: 30 deliveries bowled)
+    const hasBatting = data.has_batting !== undefined ? data.has_batting : true;
+    const hasBowling = data.has_bowling !== undefined ? data.has_bowling : (role === 'Bowler' || role === 'All-Rounder');
+    const isAllRounder = (role === 'All-Rounder') || (hasBatting && hasBowling);
 
     // Determine active splitsRole
     if (role === 'Bowler') {
       state.splitsRole = 'bowl';
-    } else if (role === 'Batter' && !isAllRounder) {
+    } else if (!isAllRounder) {
       state.splitsRole = 'bat';
     } else if (isAllRounder) {
       if (!state.splitsRole) state.splitsRole = 'bat';
@@ -584,9 +585,10 @@ document.addEventListener('DOMContentLoaded', () => {
   function renderTacticalSplitsCard(auditData) {
     const role = (auditData.meta && auditData.meta.role) ? auditData.meta.role : 'Batter';
     const isBowler = (role === 'Bowler');
-    const hasBatting = auditData.batting_stats && ((auditData.batting_stats.total_balls || 0) > 0 || (auditData.batting_stats.total_runs || 0) > 0);
-    const hasBowling = auditData.bowling_stats && ((auditData.bowling_stats.total_balls || 0) > 0 || (auditData.bowling_stats.total_wickets || 0) > 0);
-    const isAllRounder = (role === 'All-Rounder') || (hasBatting && hasBowling && ((auditData.bowling_stats && auditData.bowling_stats.total_overs >= 5) || false));
+    // Use server-computed flags so part-time bowlers (>=30 balls) get the toggle too
+    const hasBatting = auditData.has_batting !== undefined ? auditData.has_batting : true;
+    const hasBowling = auditData.has_bowling !== undefined ? auditData.has_bowling : (role === 'Bowler' || role === 'All-Rounder');
+    const isAllRounder = (role === 'All-Rounder') || (hasBatting && hasBowling);
 
     if (isAllRounder) {
       if (splitsRoleToggle) splitsRoleToggle.style.display = 'inline-flex';

@@ -291,8 +291,17 @@ def player_audit():
     
     is_bowler = (role == 'Bowler')
     is_all_rounder = (role == 'All-Rounder')
-    has_batting = role in ['Batter', 'All-Rounder'] or (len(df[df['striker'] == cric_name]) >= 15)
-    has_bowling = role in ['Bowler', 'All-Rounder'] or (len(df[df['bowler'] == cric_name]) >= 12)
+    balls_bowled = int(len(df[df['bowler'] == cric_name]))
+    balls_batted = int(len(df[df['striker'] == cric_name]))
+    # Threshold: 30 deliveries bowled = eligible for bowling stats tab (part-time bowlers included)
+    BOWL_THRESHOLD = 30
+    has_batting = role in ['Batter', 'All-Rounder'] or balls_batted >= 15
+    has_bowling = role in ['Bowler', 'All-Rounder'] or balls_bowled >= BOWL_THRESHOLD
+    is_part_time_bowler = has_bowling and role not in ['Bowler', 'All-Rounder']
+    res['has_batting'] = has_batting
+    res['has_bowling'] = has_bowling
+    res['balls_bowled'] = balls_bowled
+    res['balls_batted'] = balls_batted
     
     # 1. Batting Phase Stats
     if has_batting:
