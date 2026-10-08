@@ -166,6 +166,48 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ==========================================================================
+  // 3b. NIGHTLY MATCH SYNC (CRICSHEET OPEN FEED)
+  // ==========================================================================
+  const syncMatchesBtn = document.getElementById('syncMatchesBtn');
+  if (syncMatchesBtn) {
+    syncMatchesBtn.addEventListener('click', async () => {
+      if (syncMatchesBtn.classList.contains('is-syncing')) return;
+
+      const originalHtml = syncMatchesBtn.innerHTML;
+      syncMatchesBtn.classList.add('is-syncing');
+      syncMatchesBtn.innerHTML = `<span class="sync-icon">⏳</span><span class="sync-label">Checking Feed...</span>`;
+      showToast('Connecting to Cricsheet open feed for latest T20 matches...', 'info');
+
+      try {
+        const res = await fetch('/api/sync?days=2');
+        const data = await res.json();
+
+        if (data.status === 'success') {
+          if (data.matches_added > 0) {
+            showToast(`Synced ${data.matches_added} new match(es) (${data.balls_added.toLocaleString()} balls) into database!`, 'success');
+            const liveText = document.querySelector('.live-text');
+            if (liveText && data.total_balls) {
+              liveText.textContent = `${data.total_balls.toLocaleString()} DELIVERIES INDEXED`;
+            }
+            state.cache = {};
+            switchTab(state.currentTab);
+          } else {
+            showToast('All recent matches are already up to date!', 'success');
+          }
+        } else {
+          showToast(`Sync notification: ${data.message || 'Check connection'}`, 'warning');
+        }
+      } catch (err) {
+        console.error('Match sync request failed:', err);
+        showToast('Sync request error. Verify network connectivity.', 'error');
+      } finally {
+        syncMatchesBtn.classList.remove('is-syncing');
+        syncMatchesBtn.innerHTML = originalHtml;
+      }
+    });
+  }
+
+  // ==========================================================================
   // 4. OMNISEARCH & AUTOCOMPLETE
   // ==========================================================================
   let searchDebounceTimer = null;

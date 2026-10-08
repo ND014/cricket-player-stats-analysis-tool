@@ -188,6 +188,52 @@ body {
   box-shadow: 0 0 12px var(--primary-blue-glow);
 }
 
+.sync-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(129, 140, 248, 0.12));
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #38BDF8;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.sync-action-btn:hover {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(129, 140, 248, 0.25));
+  border-color: #38BDF8;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.35);
+  transform: translateY(-1px);
+  color: #F8FAFC;
+}
+
+.sync-action-btn:active {
+  transform: translateY(0);
+}
+
+.sync-action-btn.is-syncing {
+  opacity: 0.85;
+  pointer-events: none;
+  border-color: var(--amber-gold);
+  color: var(--amber-gold);
+}
+
+.sync-action-btn.is-syncing .sync-icon {
+  animation: spin 1s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* ==========================================================================
    2. HERO & OMNISEARCH SECTION
    ========================================================================== */

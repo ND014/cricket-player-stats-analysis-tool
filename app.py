@@ -537,6 +537,17 @@ def bowler_defensive_wheel():
     return jsonify(sanitize_json(res))
 
 
+@app.route('/api/sync', methods=['GET', 'POST'])
+def api_sync_matches():
+    try:
+        days = int(request.args.get('days', 2))
+        from sync_daily_matches import sync_recent_matches
+        res = sync_recent_matches(days=days)
+        return jsonify(res)
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
 @app.route('/api/compare')
 def player_comparison():
     p1 = request.args.get('player1', 'Virat Kohli').strip()
@@ -671,6 +682,33 @@ def player_comparison():
         res['p2_stats'] = get_batter_phase_stats(c2, df2, vs_bowler_type=vs_bowler_type)
         
     return jsonify(sanitize_json(res))
+
+
+@app.route('/api/sync')
+def sync_matches_route():
+    days = request.args.get('days', 2, type=int)
+    try:
+        from sync_daily_matches import sync_recent_matches
+        result = sync_recent_matches(days=days)
+        
+        conn = get_t20_db_connection()
+        total_deliveries = conn.execute("SELECT COUNT(*) FROM deliveries").fetchone()[0]
+        
+        if result.get('new_matches', 0) > 0:
+            init_players_cache()
+            
+        return jsonify({
+            'status': 'success',
+            'matches_added': result.get('new_matches', 0),
+            'balls_added': result.get('new_deliveries', 0),
+            'total_balls': total_deliveries,
+            'details': result.get('details', [])
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 if __name__ == '__main__':
