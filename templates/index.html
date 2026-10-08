@@ -265,6 +265,17 @@
                 </div>
               </div>
 
+              <!-- Phase Analysis Visual Shootout Chart (Displayed when multiple styles/hands are selected) -->
+              <div class="visual-canvas-card splits-visual-card" id="splitsPhaseVisualCard" style="display: none; margin-top: 1.25rem;">
+                <div class="card-header splits-visual-header">
+                  <h4 class="card-title" id="splitsPhaseVisualChartTitle">Phase Analysis</h4>
+                  <span class="header-tag primary" id="splitsPhaseVisualTag">Phase Breakdown</span>
+                </div>
+                <div class="image-viewport splits-viewport">
+                  <img id="splitsPhaseComparisonImg" class="broadcast-img" alt="Phase Analysis Splits Chart" src="">
+                </div>
+              </div>
+
               <!-- Split Detail Grid: Left (Phase Breakdown) + Right (Archetype / Matchups breakdown) -->
               <div class="splits-detail-grid">
                 <div class="splits-panel">
@@ -282,6 +293,88 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Contextual Expected Runs & Pitch Difficulty Audit Card (xR) -->
+        <div class="xr-audit-card" id="xrAuditCard">
+          <div class="card-header xr-header">
+            <div class="header-left">
+              <div>
+                <div class="title-with-badge">
+                  <h3 class="card-title" id="xrCardTitle">Expected Runs & Run Value Audit (xR)</h3>
+                  <span class="badge-tech-pill">Contextual Pitch Model</span>
+                </div>
+                <p class="splits-subtitle" id="xrCardSubtitle">
+                  Replaces raw strike rate with contextual run-value (e.g. 15-ball 25 on a 220 highway vs a 140 minefield)
+                </p>
+              </div>
+            </div>
+            <div class="header-right">
+              <!-- Dual Skill Role Toggle for All-Rounders -->
+              <div class="splits-role-toggle" id="xrRoleToggle" style="display: none;">
+                <button class="role-pill active" id="xrRoleBatBtn" data-role="bat">Batting xR</button>
+                <button class="role-pill" id="xrRoleBowlBtn" data-role="bowl">Bowling Value</button>
+              </div>
+              <span class="header-tag primary" id="xrActiveBadge">Pitch Difficulty Benchmarked</span>
+            </div>
+          </div>
+
+          <div class="card-body xr-body">
+            <!-- 4-Metric Hero KPI Grid -->
+            <div class="xr-kpi-grid" id="xrKpiGrid">
+              <!-- Rendered via JS -->
+            </div>
+
+            <!-- Broadcast Visual Scorecard (3-panel graphic) -->
+            <div class="visual-canvas-card xr-visual-card" id="xrVisualCard">
+              <div class="card-header xr-visual-header">
+                <h4 class="card-title" id="xrVisualTitle">Contextual Pitch Difficulty & Phase Value Scorecard</h4>
+                <span class="header-tag primary" id="xrVisualTag">Pro-Franchise Metric</span>
+              </div>
+              <div class="image-viewport xr-viewport">
+                <img id="xrComparisonImg" class="broadcast-img" alt="Expected Runs & Pitch Difficulty Scorecard" src="">
+              </div>
+            </div>
+
+            <!-- Pitch Difficulty Matrix (Hard vs Balanced vs Easy Decks) -->
+            <div class="xr-matrix-section">
+              <div class="section-header-compact">
+                <h4 class="section-title">Pitch Difficulty Benchmark: Hard vs Balanced vs Easy Decks</h4>
+                <span class="section-sub">Evaluating performance across low-scoring turners, sporting decks, and flat highways</span>
+              </div>
+              <div class="xr-pitch-grid" id="xrPitchGrid">
+                <!-- Rendered via JS -->
+              </div>
+            </div>
+
+            <!-- Top Contextual Impact Matches -->
+            <div class="xr-innings-section" id="xrInningsSection">
+              <div class="section-header-compact">
+                <h4 class="section-title" id="xrInningsTitle">Top Contextual Impact Matches</h4>
+                <span class="section-sub">Innings where the player generated the highest run-value above pitch condition expectations</span>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table" id="xrInningsTable">
+                  <thead>
+                    <tr>
+                      <th>Date & Match</th>
+                      <th>Venue</th>
+                      <th>Pitch Par</th>
+                      <th>Difficulty</th>
+                      <th id="thXrInningsScore">Score</th>
+                      <th id="thXrInningsExpected">Expected (xR)</th>
+                      <th id="thXrInningsValue">Net Run Value</th>
+                      <th id="thXrInningsSR">Strike Rate vs Par</th>
+                    </tr>
+                  </thead>
+                  <tbody id="xrInningsTableBody">
+                    <!-- Rendered via JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -661,6 +754,29 @@
             </div>
             <div class="compare-phase-grid" id="comparePhaseGrid">
               <!-- Rendered via JS: 3 Cards for PP, Middle, Death -->
+            </div>
+          </div>
+
+          <!-- Contextual Expected Runs & Pitch Comparison Section -->
+          <div class="compare-xr-section" id="compareXrSection">
+            <div class="section-header-compact">
+              <h4 class="section-title">Contextual Expected Runs & Pitch Difficulty Audit</h4>
+              <span class="section-sub">Who delivers higher run value when the pitch is tough (&lt;155 par) vs batting highways (185+ par)?</span>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table compare-metrics-table" id="compareXrTable">
+                <thead>
+                  <tr>
+                    <th style="width: 32%;">Pitch Environment</th>
+                    <th style="width: 26%;" id="thCompXrPlayer1">Player 1</th>
+                    <th style="width: 26%;" id="thCompXrPlayer2">Player 2</th>
+                    <th style="width: 16%;">Pitch Advantage</th>
+                  </tr>
+                </thead>
+                <tbody id="compareXrBody">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

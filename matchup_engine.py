@@ -1481,6 +1481,157 @@ def plot_matchup_splits_comparison(splits_data: dict, show_plot: bool = False, s
     return fig
 
 
+def plot_matchup_phase_splits(splits_data: dict, show_plot: bool = False, save_path = None):
+    """
+    Renders 3-panel visual graphic analyzing performance across match phases (Powerplay, Middle, Death)
+    specifically against the user's selected bowling styles (or batter handedness for bowlers).
+    Matches the single-style phase shootout layout requested by user.
+    """
+    if not splits_data or 'phases' not in splits_data:
+        return None
+
+    role = splits_data.get('role', 'Batter')
+    cric_name = splits_data.get('cric_name', '')
+    full_name = get_player_full_name(cric_name)
+    phases = ['Powerplay', 'Middle', 'Death']
+
+    phase_colors = {
+        'Powerplay': '#38BDF8',
+        'Middle': '#10B981',
+        'Death': '#EF4444'
+    }
+
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16.5, 4.8), dpi=140)
+    fig.patch.set_facecolor('#0B0F19')
+
+    for ax in [ax1, ax2, ax3]:
+        ax.set_facecolor('#111827')
+        for spine in ax.spines.values():
+            spine.set_color('#1F2937')
+            spine.set_linewidth(0.8)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.grid(axis='y', color='#1F2937', linestyle=':', alpha=0.6, zorder=0)
+        ax.tick_params(axis='x', colors='#D1D5DB', labelsize=8.5)
+        ax.tick_params(axis='y', colors='#94A3B8', labelsize=8)
+
+    labels = phases
+    colors = [phase_colors.get(p, '#38BDF8') for p in phases]
+    x = np.arange(len(phases))
+    w = 0.48
+
+    if role == 'Batter':
+        arch_list = splits_data.get('archetypes', [])
+        sel_types = [a['archetype'] for a in arch_list]
+        if len(sel_types) == 1:
+            scope_str = sel_types[0]
+        elif len(sel_types) <= 3:
+            scope_str = ", ".join(sel_types)
+        elif len(sel_types) == 8:
+            scope_str = "All Bowling Styles"
+        else:
+            scope_str = f"{len(sel_types)} Selected Styles ({', '.join(sel_types[:2])}...)"
+
+        p_sr = [splits_data['phases'][p]['sr'] for p in phases]
+        p_dots = [splits_data['phases'][p]['dot_pct'] for p in phases]
+        p_avg = [splits_data['phases'][p]['avg'] for p in phases]
+        p_outs = [splits_data['phases'][p]['dismissals'] for p in phases]
+
+        # 1. Phase SR
+        bars1 = ax1.bar(x, p_sr, width=w, color=colors, zorder=2)
+        ax1.axhline(135.0, color='#64748B', linestyle='--', lw=1.0, zorder=1)
+        ax1.text(len(labels) - 0.5, 137.0, 'Par (135)', color='#94A3B8', fontsize=7.5, ha='right', va='bottom')
+        ax1.set_xticks(x)
+        ax1.set_xticklabels(labels, color='#F1F5F9', fontsize=9)
+        ax1.set_ylabel('Strike Rate', fontsize=8.5, color='#94A3B8', labelpad=6)
+        ax1.set_title(f"Phase Strike Rate vs {scope_str}", fontsize=10.5, fontweight='bold', color='#F8FAFC', pad=12, loc='left')
+        ax1.set_ylim(0, max(160, max(p_sr, default=100) * 1.18))
+        for b in bars1:
+            h = b.get_height()
+            ax1.text(b.get_x() + b.get_width()/2, h + 2.0, f"{h:.1f}", ha='center', va='bottom', fontsize=8, color='#E2E8F0', fontweight='bold')
+
+        # 2. Phase Dot %
+        bars2 = ax2.bar(x, p_dots, width=w, color=colors, zorder=2)
+        ax2.axhline(35.0, color='#64748B', linestyle='--', lw=1.0, zorder=1)
+        ax2.text(len(labels) - 0.5, 36.0, 'Par (35%)', color='#94A3B8', fontsize=7.5, ha='right', va='bottom')
+        ax2.set_xticks(x)
+        ax2.set_xticklabels(labels, color='#F1F5F9', fontsize=9)
+        ax2.set_ylabel('Dot Ball % (Lower = Better)', fontsize=8.5, color='#94A3B8', labelpad=6)
+        ax2.set_title(f"Phase Dot Ball % vs {scope_str}", fontsize=10.5, fontweight='bold', color='#F8FAFC', pad=12, loc='left')
+        ax2.set_ylim(0, max(50, max(p_dots, default=40) * 1.2))
+        for b in bars2:
+            h = b.get_height()
+            ax2.text(b.get_x() + b.get_width()/2, h + 0.8, f"{h:.1f}%", ha='center', va='bottom', fontsize=8, color='#E2E8F0', fontweight='bold')
+
+        # 3. Phase Average
+        bars3 = ax3.bar(x, p_avg, width=w, color=colors, zorder=2)
+        ax3.set_xticks(x)
+        ax3.set_xticklabels(labels, color='#F1F5F9', fontsize=9)
+        ax3.set_ylabel('Batting Average', fontsize=8.5, color='#94A3B8', labelpad=6)
+        ax3.set_title(f"Phase Average vs {scope_str}", fontsize=10.5, fontweight='bold', color='#F8FAFC', pad=12, loc='left')
+        ax3.set_ylim(0, max(50, max(p_avg, default=40) * 1.25))
+        for b, outs in zip(bars3, p_outs):
+            h = b.get_height()
+            ax3.text(b.get_x() + b.get_width()/2, h + 1.2, f"{h:.1f}\n({outs}w)", ha='center', va='bottom', fontsize=7.5, color='#E2E8F0', fontweight='medium')
+
+        fig.suptitle(f"{full_name} vs {scope_str} Across Phases",
+                     fontsize=12, fontweight='bold', color='#F8FAFC', y=1.02)
+    else:
+        hands_list = splits_data.get('hands', [])
+        sel_hands = [h['hand'] for h in hands_list]
+        scope_str = "All Batters" if len(sel_hands) == 2 else f"vs {', '.join(sel_hands)}"
+
+        p_econ = [splits_data['phases'][p]['econ'] for p in phases]
+        p_dots = [splits_data['phases'][p]['dot_pct'] for p in phases]
+        p_sr = [splits_data['phases'][p]['sr'] for p in phases]
+        p_wkts = [splits_data['phases'][p]['wickets'] for p in phases]
+
+        bars1 = ax1.bar(x, p_econ, width=w, color=colors, zorder=2)
+        ax1.axhline(8.0, color='#64748B', linestyle='--', lw=1.0, zorder=1)
+        ax1.text(len(labels) - 0.5, 8.15, 'Par (8.0)', color='#94A3B8', fontsize=7.5, ha='right', va='bottom')
+        ax1.set_xticks(x)
+        ax1.set_xticklabels(labels, color='#F1F5F9', fontsize=9)
+        ax1.set_ylabel('Economy Rate (Lower = Better)', fontsize=8.5, color='#94A3B8', labelpad=6)
+        ax1.set_title(f"Phase Economy Rate ({scope_str})", fontsize=10.5, fontweight='bold', color='#F8FAFC', pad=12, loc='left')
+        ax1.set_ylim(0, max(10, max(p_econ, default=9) * 1.25))
+        for b in bars1:
+            h = b.get_height()
+            ax1.text(b.get_x() + b.get_width()/2, h + 0.15, f"{h:.2f}", ha='center', va='bottom', fontsize=8, color='#E2E8F0', fontweight='bold')
+
+        bars2 = ax2.bar(x, p_dots, width=w, color=colors, zorder=2)
+        ax2.axhline(40.0, color='#64748B', linestyle='--', lw=1.0, zorder=1)
+        ax2.text(len(labels) - 0.5, 40.8, 'Benchmark (40%)', color='#94A3B8', fontsize=7.5, ha='right', va='bottom')
+        ax2.set_xticks(x)
+        ax2.set_xticklabels(labels, color='#F1F5F9', fontsize=9)
+        ax2.set_ylabel('Dot Ball % (Higher = Better)', fontsize=8.5, color='#94A3B8', labelpad=6)
+        ax2.set_title(f"Phase Dot Ball % ({scope_str})", fontsize=10.5, fontweight='bold', color='#F8FAFC', pad=12, loc='left')
+        ax2.set_ylim(0, max(50, max(p_dots, default=45) * 1.2))
+        for b in bars2:
+            h = b.get_height()
+            ax2.text(b.get_x() + b.get_width()/2, h + 0.8, f"{h:.1f}%", ha='center', va='bottom', fontsize=8, color='#E2E8F0', fontweight='bold')
+
+        bars3 = ax3.bar(x, p_sr, width=w, color=colors, zorder=2)
+        ax3.set_xticks(x)
+        ax3.set_xticklabels(labels, color='#F1F5F9', fontsize=9)
+        ax3.set_ylabel('Strike Rate (Balls/Wkt)', fontsize=8.5, color='#94A3B8', labelpad=6)
+        ax3.set_title(f"Phase Strike Rate & Wickets ({scope_str})", fontsize=10.5, fontweight='bold', color='#F8FAFC', pad=12, loc='left')
+        ax3.set_ylim(0, max(30, max(p_sr, default=24) * 1.25))
+        for b, wkt in zip(bars3, p_wkts):
+            h = b.get_height()
+            ax3.text(b.get_x() + b.get_width()/2, h + 0.8, f"{h:.1f}\n({wkt}w)", ha='center', va='bottom', fontsize=7.5, color='#E2E8F0', fontweight='medium')
+
+        fig.suptitle(f"{full_name} ({scope_str}) Across Phases",
+                     fontsize=12, fontweight='bold', color='#F8FAFC', y=1.02)
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight', facecolor='#0B0F19')
+    elif show_plot:
+        plt.show()
+    plt.close(fig)
+    return True
+
+
 def calculate_player_tmv(player_name: str, df: pd.DataFrame, role='Batter', market_price=10.0):
     """Calculates Algorithmic True Matchup Value (TMV in INR Crores) for Batters, Bowlers, or All-Rounders."""
     if role == 'All-Rounder':
@@ -3025,7 +3176,9 @@ def compare_players(player1: str, player2: str, mode: str = 'auto', vs_bowler_ty
         'has_h2h': has_h2h,
         'h2h_data': h2h_data,
         'p1_stats': b1 if is_bowler_comp else (p_bat if is_duel and eff_mode == 'bat_vs_bowl' else (b_bowl if is_duel else p1_stats)),
-        'p2_stats': b2 if is_bowler_comp else (b_bowl if is_duel and eff_mode == 'bat_vs_bowl' else (p_bat if is_duel else p2_stats))
+        'p2_stats': b2 if is_bowler_comp else (b_bowl if is_duel and eff_mode == 'bat_vs_bowl' else (p_bat if is_duel else p2_stats)),
+        'xr1': get_player_expected_runs(c1, role='Bowler' if is_bowler_comp or (is_duel and eff_mode == 'bowl_vs_bat') else 'Batter', tournament=tournament),
+        'xr2': get_player_expected_runs(c2, role='Bowler' if is_bowler_comp or (is_duel and eff_mode == 'bat_vs_bowl') else 'Batter', tournament=tournament)
     }
 
     if not show_plot and not save_path:
@@ -3301,6 +3454,549 @@ def compare_players(player1: str, player2: str, mode: str = 'auto', vs_bowler_ty
         plt.show()
     plt.close(fig)
     return comp_result
+
+
+# ==============================================================================
+# 9. CONTEXTUAL EXPECTED RUNS (xR) & PITCH DIFFICULTY VALUE ENGINE
+# ==============================================================================
+
+def ensure_match_baselines_table(conn=None):
+    """
+    Ensures that the match_baselines table exists and is fully up-to-date with
+    all matches in deliveries. Fast (<100ms if already populated).
+    """
+    if conn is None:
+        conn = get_t20_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='match_baselines'")
+    exists = cursor.fetchone()
+
+    if not exists:
+        cursor.execute("""
+            CREATE TABLE match_baselines (
+                match_id INTEGER PRIMARY KEY,
+                tournament TEXT,
+                venue TEXT,
+                season TEXT,
+                start_date TEXT,
+                total_balls INTEGER,
+                total_runs INTEGER,
+                match_rpo REAL,
+                match_rpb REAL,
+                par_score_20 REAL,
+                pitch_category TEXT,
+                pp_balls INTEGER,
+                pp_runs INTEGER,
+                pp_rpb REAL,
+                mid_balls INTEGER,
+                mid_runs INTEGER,
+                mid_rpb REAL,
+                dth_balls INTEGER,
+                dth_runs INTEGER,
+                dth_rpb REAL
+            )
+        """)
+
+    cursor.execute("""
+        SELECT COUNT(DISTINCT d.match_id) 
+        FROM deliveries d 
+        LEFT JOIN match_baselines mb ON d.match_id = mb.match_id 
+        WHERE mb.match_id IS NULL
+    """)
+    missing_cnt = cursor.fetchone()[0]
+
+    if missing_cnt > 0:
+        cursor.execute("""
+            INSERT OR REPLACE INTO match_baselines
+            SELECT 
+                d.match_id,
+                MAX(d.tournament) as tournament,
+                MAX(d.venue) as venue,
+                MAX(d.season) as season,
+                MIN(d.start_date) as start_date,
+                COUNT(*) as total_balls,
+                SUM(d.runs_off_bat + d.extras) as total_runs,
+                ROUND(1.0 * SUM(d.runs_off_bat + d.extras) / (COUNT(*) / 6.0), 2) as match_rpo,
+                ROUND(1.0 * SUM(d.runs_off_bat + d.extras) / COUNT(*), 4) as match_rpb,
+                ROUND(1.0 * SUM(d.runs_off_bat + d.extras) / (COUNT(*) / 6.0) * 20.0, 1) as par_score_20,
+                CASE 
+                    WHEN (1.0 * SUM(d.runs_off_bat + d.extras) / (COUNT(*) / 6.0) * 20.0) < 155 THEN 'HARD'
+                    WHEN (1.0 * SUM(d.runs_off_bat + d.extras) / (COUNT(*) / 6.0) * 20.0) >= 185 THEN 'EASY'
+                    ELSE 'BALANCED'
+                END as pitch_category,
+                
+                SUM(CASE WHEN d.phase = 'Powerplay' THEN 1 ELSE 0 END) as pp_balls,
+                SUM(CASE WHEN d.phase = 'Powerplay' THEN d.runs_off_bat + d.extras ELSE 0 END) as pp_runs,
+                ROUND(CASE WHEN SUM(CASE WHEN d.phase = 'Powerplay' THEN 1 ELSE 0 END) > 0 
+                      THEN 1.0 * SUM(CASE WHEN d.phase = 'Powerplay' THEN d.runs_off_bat + d.extras ELSE 0 END) / SUM(CASE WHEN d.phase = 'Powerplay' THEN 1 ELSE 0 END)
+                      ELSE 1.25 END, 4) as pp_rpb,
+                      
+                SUM(CASE WHEN d.phase = 'Middle' THEN 1 ELSE 0 END) as mid_balls,
+                SUM(CASE WHEN d.phase = 'Middle' THEN d.runs_off_bat + d.extras ELSE 0 END) as mid_runs,
+                ROUND(CASE WHEN SUM(CASE WHEN d.phase = 'Middle' THEN 1 ELSE 0 END) > 0 
+                      THEN 1.0 * SUM(CASE WHEN d.phase = 'Middle' THEN d.runs_off_bat + d.extras ELSE 0 END) / SUM(CASE WHEN d.phase = 'Middle' THEN 1 ELSE 0 END)
+                      ELSE 1.25 END, 4) as mid_rpb,
+                      
+                SUM(CASE WHEN d.phase = 'Death' THEN 1 ELSE 0 END) as dth_balls,
+                SUM(CASE WHEN d.phase = 'Death' THEN d.runs_off_bat + d.extras ELSE 0 END) as dth_runs,
+                ROUND(CASE WHEN SUM(CASE WHEN d.phase = 'Death' THEN 1 ELSE 0 END) > 0 
+                      THEN 1.0 * SUM(CASE WHEN d.phase = 'Death' THEN d.runs_off_bat + d.extras ELSE 0 END) / SUM(CASE WHEN d.phase = 'Death' THEN 1 ELSE 0 END)
+                      ELSE 1.70 END, 4) as dth_rpb
+            FROM deliveries d
+            LEFT JOIN match_baselines mb ON d.match_id = mb.match_id
+            WHERE mb.match_id IS NULL
+            GROUP BY d.match_id
+        """)
+        conn.commit()
+
+
+def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament: str = 'ALL') -> dict:
+    """
+    Computes Contextual Expected Runs (xR) and Run Value (RAE / Saved Runs)
+    by benchmarking ball-by-ball output against pitch and match difficulty.
+    Categorizes performance across:
+      - HARD Pitches: Par < 155 (Bowling minefields, sticky/turning decks)
+      - BALANCED Pitches: Par 155 - 184 (Standard competitive T20 surfaces)
+      - EASY Pitches: Par 185+ (High-scoring batting highways)
+    """
+    cric_name = resolve_player_name(player_name)
+    conn = get_t20_db_connection()
+    ensure_match_baselines_table(conn)
+
+    is_bowler = (str(role).strip().lower() in ['bowler', 'bowl'])
+    tourn_filter = ""
+    params = [cric_name]
+    if tournament and tournament != 'ALL':
+        tourn_filter = " AND d.tournament = ? "
+        params.append(tournament)
+
+    if not is_bowler:
+        q = f"""
+            SELECT 
+                d.match_id,
+                d.start_date,
+                d.venue,
+                d.tournament,
+                d.phase,
+                d.runs_off_bat,
+                mb.match_rpo,
+                mb.par_score_20,
+                mb.pitch_category,
+                CASE 
+                    WHEN d.phase = 'Powerplay' THEN mb.pp_rpb
+                    WHEN d.phase = 'Middle' THEN mb.mid_rpb
+                    WHEN d.phase = 'Death' THEN mb.dth_rpb
+                    ELSE mb.match_rpb
+                END as exp_rpb
+            FROM deliveries d
+            JOIN match_baselines mb ON d.match_id = mb.match_id
+            WHERE d.striker = ? {tourn_filter}
+        """
+        df = pd.read_sql(q, conn, params=params)
+        if len(df) == 0:
+            return None
+
+        total_balls = len(df)
+        total_runs = int(df['runs_off_bat'].sum())
+        total_xr = float(df['exp_rpb'].sum())
+        run_value = total_runs - total_xr
+        actual_sr = round(total_runs * 100.0 / max(1, total_balls), 1)
+        expected_sr = round(total_xr * 100.0 / max(1, total_balls), 1)
+        impact_ratio = round(total_runs / max(0.1, total_xr), 2)
+        rv_per_100 = round(run_value * 100.0 / max(1, total_balls), 2)
+
+        pitch_splits = []
+        for pcat, label, desc, par_range in [
+            ('HARD', 'Tough / Bowling Minefields', 'Sticky & turning pitches with Par < 155 (e.g. Mirpur, Chepauk turners, Lucknow)', '< 155'),
+            ('BALANCED', 'Sporting / Balanced Decks', 'Standard competitive T20 surfaces with Par 155 – 184', '155 – 184'),
+            ('EASY', 'Flat Highways / Batting Paradises', 'High-scoring roads with Par 185+ (e.g. Chinnaswamy, Wankhede, Hyderabad)', '185+')
+        ]:
+            sub = df[df['pitch_category'] == pcat]
+            if len(sub) > 0:
+                s_balls = len(sub)
+                s_runs = int(sub['runs_off_bat'].sum())
+                s_xr = float(sub['exp_rpb'].sum())
+                s_rv = s_runs - s_xr
+                s_matches = sub['match_id'].nunique()
+                pitch_splits.append({
+                    'category': pcat,
+                    'label': label,
+                    'desc': desc,
+                    'par_range': par_range,
+                    'matches': s_matches,
+                    'balls': s_balls,
+                    'runs': s_runs,
+                    'xr': round(s_xr, 1),
+                    'run_value': round(s_rv, 1),
+                    'actual_sr': round(s_runs * 100.0 / max(1, s_balls), 1),
+                    'expected_sr': round(s_xr * 100.0 / max(1, s_balls), 1),
+                    'impact_ratio': round(s_runs / max(0.1, s_xr), 2)
+                })
+
+        phase_splits = []
+        for ph in ['Powerplay', 'Middle', 'Death']:
+            sub = df[df['phase'] == ph]
+            if len(sub) > 0:
+                s_balls = len(sub)
+                s_runs = int(sub['runs_off_bat'].sum())
+                s_xr = float(sub['exp_rpb'].sum())
+                s_rv = s_runs - s_xr
+                phase_splits.append({
+                    'phase': ph,
+                    'balls': s_balls,
+                    'runs': s_runs,
+                    'xr': round(s_xr, 1),
+                    'run_value': round(s_rv, 1),
+                    'actual_sr': round(s_runs * 100.0 / max(1, s_balls), 1),
+                    'expected_sr': round(s_xr * 100.0 / max(1, s_balls), 1)
+                })
+
+        match_agg = df.groupby(['match_id', 'venue', 'start_date', 'par_score_20', 'pitch_category']).agg(
+            balls=('runs_off_bat', 'count'),
+            runs=('runs_off_bat', 'sum'),
+            xr=('exp_rpb', 'sum')
+        ).reset_index()
+        match_agg['run_value'] = match_agg['runs'] - match_agg['xr']
+        match_agg['actual_sr'] = (match_agg['runs'] * 100.0 / match_agg['balls'].clip(lower=1)).round(1)
+        match_agg['par_sr'] = (match_agg['xr'] * 100.0 / match_agg['balls'].clip(lower=1)).round(1)
+        top_matches = match_agg[match_agg['balls'] >= 8].sort_values('run_value', ascending=False).head(5)
+        top_innings = []
+        for _, r in top_matches.iterrows():
+            top_innings.append({
+                'match_id': int(r['match_id']),
+                'venue': r['venue'],
+                'date': str(r['start_date'])[:10],
+                'balls': int(r['balls']),
+                'runs': int(r['runs']),
+                'xr': round(float(r['xr']), 1),
+                'run_value': round(float(r['run_value']), 1),
+                'actual_sr': float(r['actual_sr']),
+                'par_sr': float(r['par_sr']),
+                'pitch_par': round(float(r['par_score_20']), 0),
+                'pitch_category': r['pitch_category']
+            })
+
+        return {
+            'cric_name': cric_name,
+            'role': 'Batter',
+            'tournament': tournament,
+            'total_balls': total_balls,
+            'total_runs': total_runs,
+            'expected_runs': round(total_xr, 1),
+            'run_value': round(run_value, 1),
+            'actual_sr': actual_sr,
+            'expected_sr': expected_sr,
+            'impact_ratio': impact_ratio,
+            'rv_per_100': rv_per_100,
+            'pitch_splits': pitch_splits,
+            'phase_splits': phase_splits,
+            'top_innings': top_innings
+        }
+    else:
+        # Bowler
+        q = f"""
+            SELECT 
+                d.match_id,
+                d.start_date,
+                d.venue,
+                d.tournament,
+                d.phase,
+                d.total_runs_conceded,
+                d.is_wicket,
+                mb.match_rpo,
+                mb.par_score_20,
+                mb.pitch_category,
+                CASE 
+                    WHEN d.phase = 'Powerplay' THEN mb.pp_rpb
+                    WHEN d.phase = 'Middle' THEN mb.mid_rpb
+                    WHEN d.phase = 'Death' THEN mb.dth_rpb
+                    ELSE mb.match_rpb
+                END as exp_rpb
+            FROM deliveries d
+            JOIN match_baselines mb ON d.match_id = mb.match_id
+            WHERE d.bowler = ? {tourn_filter}
+        """
+        df = pd.read_sql(q, conn, params=params)
+        if len(df) == 0:
+            return None
+
+        total_balls = len(df)
+        overs = round(total_balls / 6.0, 1)
+        total_conceded = int(df['total_runs_conceded'].sum())
+        total_xrc = float(df['exp_rpb'].sum())
+        runs_saved = total_xrc - total_conceded
+        actual_econ = round(total_conceded / max(0.1, total_balls / 6.0), 2)
+        expected_econ = round(total_xrc / max(0.1, total_balls / 6.0), 2)
+        impact_ratio = round(total_xrc / max(0.1, total_conceded), 2)
+        saved_per_match = round(runs_saved / max(1.0, total_balls / 24.0), 2)
+
+        pitch_splits = []
+        for pcat, label, desc, par_range in [
+            ('HARD', 'Tough / Bowling Minefields', 'Low-scoring decks where par is < 155', '< 155'),
+            ('BALANCED', 'Sporting / Balanced Decks', 'Standard competitive surfaces with Par 155 – 184', '155 – 184'),
+            ('EASY', 'Flat Highways / Batting Paradises', 'High-scoring roads with Par 185+ (Damage containment test)', '185+')
+        ]:
+            sub = df[df['pitch_category'] == pcat]
+            if len(sub) > 0:
+                s_balls = len(sub)
+                s_conceded = int(sub['total_runs_conceded'].sum())
+                s_xrc = float(sub['exp_rpb'].sum())
+                s_saved = s_xrc - s_conceded
+                s_matches = sub['match_id'].nunique()
+                pitch_splits.append({
+                    'category': pcat,
+                    'label': label,
+                    'desc': desc,
+                    'par_range': par_range,
+                    'matches': s_matches,
+                    'balls': s_balls,
+                    'runs_conceded': s_conceded,
+                    'xrc': round(s_xrc, 1),
+                    'runs_saved': round(s_saved, 1),
+                    'actual_econ': round(s_conceded / max(0.1, s_balls / 6.0), 2),
+                    'expected_econ': round(s_xrc / max(0.1, s_balls / 6.0), 2),
+                    'impact_ratio': round(s_xrc / max(0.1, s_conceded), 2)
+                })
+
+        phase_splits = []
+        for ph in ['Powerplay', 'Middle', 'Death']:
+            sub = df[df['phase'] == ph]
+            if len(sub) > 0:
+                s_balls = len(sub)
+                s_conceded = int(sub['total_runs_conceded'].sum())
+                s_xrc = float(sub['exp_rpb'].sum())
+                s_saved = s_xrc - s_conceded
+                phase_splits.append({
+                    'phase': ph,
+                    'balls': s_balls,
+                    'runs_conceded': s_conceded,
+                    'xrc': round(s_xrc, 1),
+                    'runs_saved': round(s_saved, 1),
+                    'actual_econ': round(s_conceded / max(0.1, s_balls / 6.0), 2),
+                    'expected_econ': round(s_xrc / max(0.1, s_balls / 6.0), 2)
+                })
+
+        match_agg = df.groupby(['match_id', 'venue', 'start_date', 'par_score_20', 'pitch_category']).agg(
+            balls=('total_runs_conceded', 'count'),
+            conceded=('total_runs_conceded', 'sum'),
+            xrc=('exp_rpb', 'sum'),
+            wkts=('is_wicket', 'sum')
+        ).reset_index()
+        match_agg['runs_saved'] = match_agg['xrc'] - match_agg['conceded']
+        match_agg['econ'] = (match_agg['conceded'] / (match_agg['balls'].clip(lower=1) / 6.0)).round(2)
+        match_agg['par_econ'] = (match_agg['xrc'] / (match_agg['balls'].clip(lower=1) / 6.0)).round(2)
+        top_matches = match_agg[match_agg['balls'] >= 12].sort_values('runs_saved', ascending=False).head(5)
+        top_innings = []
+        for _, r in top_matches.iterrows():
+            top_innings.append({
+                'match_id': int(r['match_id']),
+                'venue': r['venue'],
+                'date': str(r['start_date'])[:10],
+                'balls': int(r['balls']),
+                'runs_conceded': int(r['conceded']),
+                'wkts': int(r['wkts']),
+                'xrc': round(float(r['xrc']), 1),
+                'runs_saved': round(float(r['runs_saved']), 1),
+                'actual_econ': float(r['econ']),
+                'par_econ': float(r['par_econ']),
+                'pitch_par': round(float(r['par_score_20']), 0),
+                'pitch_category': r['pitch_category']
+            })
+
+        return {
+            'cric_name': cric_name,
+            'role': 'Bowler',
+            'tournament': tournament,
+            'total_balls': total_balls,
+            'overs': overs,
+            'total_runs_conceded': total_conceded,
+            'expected_runs_conceded': round(total_xrc, 1),
+            'runs_saved': round(runs_saved, 1),
+            'actual_econ': actual_econ,
+            'expected_econ': expected_econ,
+            'impact_ratio': impact_ratio,
+            'saved_per_match': saved_per_match,
+            'pitch_splits': pitch_splits,
+            'phase_splits': phase_splits,
+            'top_innings': top_innings
+        }
+
+
+def plot_xr_pitch_splits(xr_data: dict, player_name: str, show_plot: bool = False, save_path = None):
+    """
+    Renders high-impact 3-panel visual graphic comparing actual performance vs
+    contextual pitch par across Hard, Balanced, and Easy Highway surfaces.
+    """
+    if not xr_data or 'pitch_splits' not in xr_data:
+        return None
+
+    role = xr_data.get('role', 'Batter')
+    is_bowler = (str(role).lower() in ['bowler', 'bowl'])
+    pitch_splits = xr_data['pitch_splits']
+    phase_splits = xr_data.get('phase_splits', [])
+
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16, 4.8), facecolor='#0B0F19', dpi=140)
+
+    for ax in [ax1, ax2, ax3]:
+        ax.set_facecolor('#111827')
+        for spine in ax.spines.values():
+            spine.set_color('#1F2937')
+            spine.set_linewidth(0.8)
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.grid(axis='y', color='#1F2937', linestyle=':', alpha=0.6, zorder=0)
+        ax.tick_params(axis='x', colors='#D1D5DB', labelsize=8.5)
+        ax.tick_params(axis='y', colors='#94A3B8', labelsize=8)
+
+    categories = [p['category'] for p in pitch_splits]
+    cat_labels = [
+        'Hard Pitch\n(Par < 155)' if c == 'HARD' else
+        ('Balanced\n(Par 155-184)' if c == 'BALANCED' else 'Easy Highway\n(Par 185+)')
+        for c in categories
+    ]
+    x = np.arange(len(categories))
+    w = 0.35
+
+    if not is_bowler:
+        # --- BATTER ---
+        actual_srs = [p['actual_sr'] for p in pitch_splits]
+        exp_srs = [p['expected_sr'] for p in pitch_splits]
+
+        b1 = ax1.bar(x - w/2, actual_srs, width=w, label='Actual SR', color='#38BDF8', zorder=2)
+        b2 = ax1.bar(x + w/2, exp_srs, width=w, label='Expected Par SR', color='#475569', zorder=2)
+        ax1.set_xticks(x)
+        ax1.set_xticklabels(cat_labels, fontsize=8.5, color='#F1F5F9')
+        ax1.set_ylabel('Strike Rate', fontsize=8.5, color='#94A3B8', labelpad=6)
+        ax1.set_title('Strike Rate vs Pitch Par', fontsize=10.5, fontweight='bold', color='#F8FAFC', pad=12, loc='left')
+        ax1.legend(facecolor='#1F2937', edgecolor='#374151', labelcolor='#D1D5DB', fontsize=8)
+        max_y = max(max(actual_srs, default=150), max(exp_srs, default=150)) * 1.18
+        ax1.set_ylim(0, max(160, max_y))
+
+        for b in b1:
+            ax1.text(b.get_x() + b.get_width()/2, b.get_height() + 1.5, f"{b.get_height():.1f}",
+                     ha='center', va='bottom', fontsize=8, color='#38BDF8', fontweight='bold')
+        for b in b2:
+            ax1.text(b.get_x() + b.get_width()/2, b.get_height() + 1.5, f"{b.get_height():.1f}",
+                     ha='center', va='bottom', fontsize=7.8, color='#94A3B8')
+
+        rvs = [p['run_value'] for p in pitch_splits]
+        rv_colors = ['#10B981' if v >= 0 else '#F43F5E' for v in rvs]
+        b_rv = ax2.bar(x, rvs, width=0.48, color=rv_colors, zorder=2)
+        ax2.axhline(0, color='#64748B', linestyle='-', lw=0.8, zorder=1)
+        ax2.set_xticks(x)
+        ax2.set_xticklabels(cat_labels, fontsize=8.5, color='#F1F5F9')
+        ax2.set_ylabel('Runs Above Expected (RAE)', fontsize=8.5, color='#94A3B8', labelpad=6)
+        ax2.set_title('Net Run Value by Pitch Condition', fontsize=10.5, fontweight='bold', color='#F8FAFC', pad=12, loc='left')
+
+        for b, v in zip(b_rv, rvs):
+            va = 'bottom' if v >= 0 else 'top'
+            offset = 3.0 if v >= 0 else -3.0
+            col = '#10B981' if v >= 0 else '#F43F5E'
+            ax2.text(b.get_x() + b.get_width()/2, v + offset, f"{v:+0.1f}",
+                     ha='center', va=va, fontsize=8.5, color=col, fontweight='bold')
+        lim = max(abs(min(rvs, default=-10)), abs(max(rvs, default=10))) * 1.25
+        ax2.set_ylim(-max(30, lim), max(30, lim))
+
+        if phase_splits:
+            ph_labels = [p['phase'] for p in phase_splits]
+            ph_rvs = [p['run_value'] for p in phase_splits]
+            ph_x = np.arange(len(ph_labels))
+            ph_colors = ['#10B981' if v >= 0 else '#F43F5E' for v in ph_rvs]
+            b_ph = ax3.bar(ph_x, ph_rvs, width=0.45, color=ph_colors, zorder=2)
+            ax3.axhline(0, color='#64748B', linestyle='-', lw=0.8, zorder=1)
+            ax3.set_xticks(ph_x)
+            ax3.set_xticklabels(ph_labels, fontsize=8.5, color='#F1F5F9')
+            ax3.set_ylabel('Run Value (RAE)', fontsize=8.5, color='#94A3B8', labelpad=6)
+            ax3.set_title('Phase Value Generation (PP / Mid / Death)', fontsize=10.5, fontweight='bold', color='#F8FAFC', pad=12, loc='left')
+
+            for b, v in zip(b_ph, ph_rvs):
+                va = 'bottom' if v >= 0 else 'top'
+                offset = 2.5 if v >= 0 else -2.5
+                col = '#10B981' if v >= 0 else '#F43F5E'
+                ax3.text(b.get_x() + b.get_width()/2, v + offset, f"{v:+0.1f}",
+                         ha='center', va=va, fontsize=8.5, color=col, fontweight='bold')
+            ph_lim = max(abs(min(ph_rvs, default=-10)), abs(max(ph_rvs, default=10))) * 1.25
+            ax3.set_ylim(-max(25, ph_lim), max(25, ph_lim))
+
+        tot_rv = xr_data.get('run_value', 0.0)
+        tot_col = "+ " if tot_rv >= 0 else ""
+        fig.suptitle(f"{player_name} — Expected Runs (xR) & Pitch Difficulty Value Audit | Career RAE: {tot_col}{tot_rv:.1f} Runs",
+                     fontsize=12, fontweight='bold', color='#F8FAFC', y=1.02)
+
+    else:
+        # --- BOWLER ---
+        actual_econs = [p['actual_econ'] for p in pitch_splits]
+        exp_econs = [p['expected_econ'] for p in pitch_splits]
+
+        b1 = ax1.bar(x - w/2, actual_econs, width=w, label='Actual Economy', color='#10B981', zorder=2)
+        b2 = ax1.bar(x + w/2, exp_econs, width=w, label='Par Pitch Economy', color='#475569', zorder=2)
+        ax1.set_xticks(x)
+        ax1.set_xticklabels(cat_labels, fontsize=8.5, color='#F1F5F9')
+        ax1.set_ylabel('Economy Rate (Lower = Better)', fontsize=8.5, color='#94A3B8', labelpad=6)
+        ax1.set_title('Economy Rate vs Pitch Par', fontsize=10.5, fontweight='bold', color='#F8FAFC', pad=12, loc='left')
+        ax1.legend(facecolor='#1F2937', edgecolor='#374151', labelcolor='#D1D5DB', fontsize=8)
+        max_y = max(max(actual_econs, default=8), max(exp_econs, default=8)) * 1.25
+        ax1.set_ylim(0, max(10, max_y))
+
+        for b in b1:
+            ax1.text(b.get_x() + b.get_width()/2, b.get_height() + 0.15, f"{b.get_height():.2f}",
+                     ha='center', va='bottom', fontsize=8, color='#10B981', fontweight='bold')
+        for b in b2:
+            ax1.text(b.get_x() + b.get_width()/2, b.get_height() + 0.15, f"{b.get_height():.2f}",
+                     ha='center', va='bottom', fontsize=7.8, color='#94A3B8')
+
+        saved = [p['runs_saved'] for p in pitch_splits]
+        saved_colors = ['#10B981' if v >= 0 else '#F43F5E' for v in saved]
+        b_s = ax2.bar(x, saved, width=0.48, color=saved_colors, zorder=2)
+        ax2.axhline(0, color='#64748B', linestyle='-', lw=0.8, zorder=1)
+        ax2.set_xticks(x)
+        ax2.set_xticklabels(cat_labels, fontsize=8.5, color='#F1F5F9')
+        ax2.set_ylabel('Runs Saved (Containment Surplus)', fontsize=8.5, color='#94A3B8', labelpad=6)
+        ax2.set_title('Runs Saved by Pitch Condition', fontsize=10.5, fontweight='bold', color='#F8FAFC', pad=12, loc='left')
+
+        for b, v in zip(b_s, saved):
+            va = 'bottom' if v >= 0 else 'top'
+            offset = 4.0 if v >= 0 else -4.0
+            col = '#10B981' if v >= 0 else '#F43F5E'
+            ax2.text(b.get_x() + b.get_width()/2, v + offset, f"{v:+0.1f}",
+                     ha='center', va=va, fontsize=8.5, color=col, fontweight='bold')
+        lim = max(abs(min(saved, default=-10)), abs(max(saved, default=10))) * 1.25
+        ax2.set_ylim(-max(30, lim), max(30, lim))
+
+        if phase_splits:
+            ph_labels = [p['phase'] for p in phase_splits]
+            ph_saved = [p['runs_saved'] for p in phase_splits]
+            ph_x = np.arange(len(ph_labels))
+            ph_colors = ['#10B981' if v >= 0 else '#F43F5E' for v in ph_saved]
+            b_ph = ax3.bar(ph_x, ph_saved, width=0.45, color=ph_colors, zorder=2)
+            ax3.axhline(0, color='#64748B', linestyle='-', lw=0.8, zorder=1)
+            ax3.set_xticks(ph_x)
+            ax3.set_xticklabels(ph_labels, fontsize=8.5, color='#F1F5F9')
+            ax3.set_ylabel('Runs Saved', fontsize=8.5, color='#94A3B8', labelpad=6)
+            ax3.set_title('Phase Containment Value', fontsize=10.5, fontweight='bold', color='#F8FAFC', pad=12, loc='left')
+
+            for b, v in zip(b_ph, ph_saved):
+                va = 'bottom' if v >= 0 else 'top'
+                offset = 3.0 if v >= 0 else -3.0
+                col = '#10B981' if v >= 0 else '#F43F5E'
+                ax3.text(b.get_x() + b.get_width()/2, v + offset, f"{v:+0.1f}",
+                         ha='center', va=va, fontsize=8.5, color=col, fontweight='bold')
+            ph_lim = max(abs(min(ph_saved, default=-10)), abs(max(ph_saved, default=10))) * 1.25
+            ax3.set_ylim(-max(25, ph_lim), max(25, ph_lim))
+
+        tot_s = xr_data.get('runs_saved', 0.0)
+        tot_col = "+ " if tot_s >= 0 else ""
+        fig.suptitle(f"{player_name} — Expected Runs Conceded (xRC) & Containment Value | Total Saved: {tot_col}{tot_s:.1f} Runs",
+                     fontsize=12, fontweight='bold', color='#F8FAFC', y=1.02)
+
+    plt.tight_layout()
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight', facecolor='#0B0F19')
+    elif show_plot:
+        plt.show()
+    plt.close(fig)
+    return True
 
 
 if __name__ == '__main__':

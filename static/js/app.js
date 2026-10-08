@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     splitsBowlerTypes: ['LAF', 'RAF', 'LAM', 'RAM', 'OFF_SPIN', 'WRIST_SPIN', 'SLA', 'LEFT_WRIST_SPIN'],
     splitsBatterHands: ['RHB', 'LHB'],
     splitsPhases: ['Powerplay', 'Middle', 'Death'],
+    xrRole: 'bat',
     currentTab: 'tab-dossier',
     censusLoaded: false,
     cache: {}
@@ -358,6 +359,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Interactive Tactical Matchup Splits Card
     renderTacticalSplitsCard(data);
+
+    // 4. Contextual Expected Runs & Pitch Difficulty Audit Card (xR)
+    renderExpectedRunsCard(data);
   }
 
   function renderDossierDiscipline(data) {
@@ -691,8 +695,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (splitsRoleBatBtn) {
     splitsRoleBatBtn.addEventListener('click', () => {
       state.splitsRole = 'bat';
+      state.xrRole = 'bat';
       updateSplitsRoleUI();
       renderDossierDiscipline(state.currentAuditData);
+      renderExpectedRunsCard(state.currentAuditData);
       fetchTacticalSplits();
     });
   }
@@ -700,8 +706,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (splitsRoleBowlBtn) {
     splitsRoleBowlBtn.addEventListener('click', () => {
       state.splitsRole = 'bowl';
+      state.xrRole = 'bowl';
       updateSplitsRoleUI();
       renderDossierDiscipline(state.currentAuditData);
+      renderExpectedRunsCard(state.currentAuditData);
       fetchTacticalSplits();
     });
   }
@@ -1040,11 +1048,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.is_all) {
           chartTitle.textContent = `Performance Splits Across 8 Bowling Styles — ${data.cric_name}`;
           chartTag.textContent = 'All Archetypes';
-        } else if (data.selected_types.length >= 2) {
+        } else if (data.selected_types && data.selected_types.length >= 2) {
           chartTitle.textContent = `Performance Splits vs ${data.selected_types.join(', ')} — ${data.cric_name}`;
           chartTag.textContent = `${data.selected_types.length} Styles Selected`;
         } else {
-          chartTitle.textContent = `Phase Analysis vs ${data.selected_types.join(', ')} — ${data.cric_name}`;
+          chartTitle.textContent = `Phase Analysis vs ${data.selected_types ? data.selected_types.join(', ') : 'Opponents'} — ${data.cric_name}`;
           chartTag.textContent = 'Single Style Phase Analysis';
         }
       } else {
@@ -1058,6 +1066,41 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } else if (visualCard) {
       visualCard.style.display = 'none';
+    }
+
+    // 2.6 Dedicated Phase Analysis Visual Card (Displayed when comparing multiple styles/hands)
+    const phaseVisualCard = document.getElementById('splitsPhaseVisualCard');
+    const phaseCompImg = document.getElementById('splitsPhaseComparisonImg');
+    const phaseChartTitle = document.getElementById('splitsPhaseVisualChartTitle');
+    const phaseChartTag = document.getElementById('splitsPhaseVisualTag');
+
+    if (data.phase_image_b64 && phaseCompImg && phaseVisualCard) {
+      phaseCompImg.src = `data:image/png;base64,${data.phase_image_b64}`;
+      phaseVisualCard.style.display = 'block';
+
+      if (isBat) {
+        if (data.is_all) {
+          if (phaseChartTitle) phaseChartTitle.textContent = `Phase Analysis Across 8 Bowling Styles — ${data.cric_name}`;
+          if (phaseChartTag) phaseChartTag.textContent = 'Phase Breakdown Shootout';
+        } else if (data.selected_types && data.selected_types.length >= 2) {
+          if (phaseChartTitle) phaseChartTitle.textContent = `Phase Analysis vs ${data.selected_types.join(', ')} — ${data.cric_name}`;
+          if (phaseChartTag) phaseChartTag.textContent = `${data.selected_types.length} Styles Phase Breakdown`;
+        } else {
+          if (phaseChartTitle) phaseChartTitle.textContent = `Phase Analysis — ${data.cric_name}`;
+          if (phaseChartTag) phaseChartTag.textContent = 'Phase Analysis';
+        }
+      } else {
+        if (data.is_all) {
+          if (phaseChartTitle) phaseChartTitle.textContent = `Phase Analysis vs All Batters — ${data.cric_name}`;
+          if (phaseChartTag) phaseChartTag.textContent = 'All Batters Phase Breakdown';
+        } else {
+          const handsStr = data.selected_hands ? data.selected_hands.join(', ') : 'Selected Batters';
+          if (phaseChartTitle) phaseChartTitle.textContent = `Phase Analysis vs ${handsStr} — ${data.cric_name}`;
+          if (phaseChartTag) phaseChartTag.textContent = 'Phase Breakdown Shootout';
+        }
+      }
+    } else if (phaseVisualCard) {
+      phaseVisualCard.style.display = 'none';
     }
 
     // 3. Left Panel: Phase Breakdown
@@ -1254,6 +1297,328 @@ document.addEventListener('DOMContentLoaded', () => {
 
         splitsMatchupContent.innerHTML = html || '<div style="color:var(--text-secondary); font-size:0.8rem;">No deliveries recorded against chosen batter profiles.</div>';
       }
+    }
+  }
+
+  // ==========================================================================
+  // CONTEXTUAL EXPECTED RUNS (xR) & PITCH DIFFICULTY VALUE AUDIT
+  // ==========================================================================
+  const xrRoleBatBtn = document.getElementById('xrRoleBatBtn');
+  const xrRoleBowlBtn = document.getElementById('xrRoleBowlBtn');
+  if (xrRoleBatBtn) {
+    xrRoleBatBtn.addEventListener('click', () => {
+      xrRoleBatBtn.classList.add('active');
+      if (xrRoleBowlBtn) xrRoleBowlBtn.classList.remove('active');
+      state.xrRole = 'bat';
+      if (state.currentAuditData) {
+        renderExpectedRunsCard(state.currentAuditData);
+      }
+    });
+  }
+  if (xrRoleBowlBtn) {
+    xrRoleBowlBtn.addEventListener('click', () => {
+      xrRoleBowlBtn.classList.add('active');
+      if (xrRoleBatBtn) xrRoleBatBtn.classList.remove('active');
+      state.xrRole = 'bowl';
+      if (state.currentAuditData) {
+        renderExpectedRunsCard(state.currentAuditData);
+      }
+    });
+  }
+
+  function renderExpectedRunsCard(data) {
+    if (!data) return;
+    const meta = data.meta || {};
+    const role = meta.role || 'Batter';
+    const hasBatting = data.has_batting !== undefined ? data.has_batting : true;
+    const hasBowling = data.has_bowling !== undefined ? data.has_bowling : false;
+    const isAllRounder = (role === 'All-Rounder') || (hasBatting && hasBowling);
+
+    const xrToggle = document.getElementById('xrRoleToggle');
+    if (xrToggle) {
+      if (isAllRounder) {
+        xrToggle.style.display = 'flex';
+        if (state.xrRole === 'bowl') {
+          if (xrRoleBowlBtn) xrRoleBowlBtn.classList.add('active');
+          if (xrRoleBatBtn) xrRoleBatBtn.classList.remove('active');
+        } else {
+          if (xrRoleBatBtn) xrRoleBatBtn.classList.add('active');
+          if (xrRoleBowlBtn) xrRoleBowlBtn.classList.remove('active');
+        }
+      } else {
+        xrToggle.style.display = 'none';
+      }
+    }
+
+    const isBowlerMode = (state.xrRole === 'bowl') || (role === 'Bowler' && state.xrRole !== 'bat');
+    const xr = isBowlerMode ? data.bowling_xr : data.batting_xr;
+
+    if (!xr) {
+      fetchExpectedRuns(data.cric_name || state.currentPlayer, isBowlerMode ? 'bowl' : 'bat');
+      return;
+    }
+
+    updateExpectedRunsDisplay(xr, isBowlerMode, data.display_name || data.full_name || state.currentPlayer);
+  }
+
+  function updateExpectedRunsDisplay(xr, isBowlerMode, playerName) {
+    const kpiGrid = document.getElementById('xrKpiGrid');
+    const visualImg = document.getElementById('xrComparisonImg');
+    const pitchGrid = document.getElementById('xrPitchGrid');
+    const inningsBody = document.getElementById('xrInningsTableBody');
+    const titleEl = document.getElementById('xrCardTitle');
+    const subtitleEl = document.getElementById('xrCardSubtitle');
+    const badgeEl = document.getElementById('xrActiveBadge');
+
+    if (visualImg && xr.image_b64) {
+      visualImg.src = `data:image/png;base64,${xr.image_b64}`;
+    }
+
+    if (isBowlerMode) {
+      if (titleEl) titleEl.textContent = 'Expected Runs Conceded (xRC) & Containment Value';
+      if (subtitleEl) subtitleEl.textContent = 'Quantifies bowling containment surplus vs pitch par (e.g. conceding 30 on a 220 highway vs a 130 minefield)';
+      if (badgeEl) badgeEl.textContent = 'Bowling Containment Model Active';
+
+      const runsSaved = xr.runs_saved || 0;
+      const isPositiveSaved = runsSaved >= 0;
+      const savedClass = isPositiveSaved ? 'text-green' : 'text-rose';
+      const savedSign = runsSaved >= 0 ? '+' : '';
+
+      if (kpiGrid) {
+        kpiGrid.innerHTML = `
+          <div class="xr-kpi-tile">
+            <span class="xr-kpi-label">Containment Surplus (Runs Saved)</span>
+            <span class="xr-kpi-value ${savedClass}">${savedSign}${fmt(runsSaved, 1)}</span>
+            <span class="xr-kpi-sub">${isPositiveSaved ? 'Net Runs Saved for Team' : 'Surplus Runs Conceded Above Par'}</span>
+            <div class="xr-kpi-badge ${isPositiveSaved ? 'positive' : 'negative'}">
+              ${isPositiveSaved ? '▲ Elite Containment' : '▼ Below Par Leaking'}
+            </div>
+          </div>
+
+          <div class="xr-kpi-tile">
+            <span class="xr-kpi-label">Conceded vs Expected (xRC)</span>
+            <span class="xr-kpi-value" style="color:#38BDF8;">${(xr.total_runs_conceded || 0).toLocaleString()} <span style="font-size:1rem; color:var(--text-muted); font-weight:500;">/ ${fmt(xr.expected_runs_conceded, 1)}</span></span>
+            <span class="xr-kpi-sub">Total Conceded vs Pitch Baseline (${(xr.overs || 0).toFixed(1)} Overs)</span>
+            <div class="xr-kpi-badge neutral">
+              ${fmt(xr.saved_per_match, 1)} runs saved/match
+            </div>
+          </div>
+
+          <div class="xr-kpi-tile">
+            <span class="xr-kpi-label">Economy vs Pitch Par Economy</span>
+            <span class="xr-kpi-value" style="color:#10B981;">${fmt(xr.actual_econ, 2)} <span style="font-size:1rem; color:var(--text-muted); font-weight:500;">vs ${fmt(xr.expected_econ, 2)}</span></span>
+            <span class="xr-kpi-sub">Match & Phase Contextualized Economy</span>
+            <div class="xr-kpi-badge ${xr.actual_econ <= xr.expected_econ ? 'positive' : 'negative'}">
+              ${xr.actual_econ <= xr.expected_econ ? 'Tighter than Pitch Par' : 'Higher than Pitch Par'}
+            </div>
+          </div>
+
+          <div class="xr-kpi-tile">
+            <span class="xr-kpi-label">Containment Impact Index</span>
+            <span class="xr-kpi-value" style="color:#F59E0B;">${fmt(xr.impact_ratio, 2)}x</span>
+            <span class="xr-kpi-sub">${xr.impact_ratio >= 1.0 ? '+' : ''}${fmt((xr.impact_ratio - 1.0)*100, 1)}% vs Pitch Demand</span>
+            <div class="xr-kpi-badge positive">
+              ${fmt((xr.expected_econ - xr.actual_econ), 2)} Econ Suppression
+            </div>
+          </div>
+        `;
+      }
+
+      if (pitchGrid && xr.pitch_splits) {
+        pitchGrid.innerHTML = xr.pitch_splits.map(p => {
+          const isHard = p.category === 'HARD';
+          const isEasy = p.category === 'EASY';
+          const tierIcon = isHard ? '🛡️' : (isEasy ? '⚡' : '⚖️');
+          const tierBorder = isHard ? 'border-amber' : (isEasy ? 'border-blue' : 'border-slate');
+          const pSaved = p.runs_saved || 0;
+          const pSavedClass = pSaved >= 0 ? 'text-green' : 'text-rose';
+          return `
+            <div class="xr-pitch-card ${tierBorder}">
+              <div class="xr-pitch-card-header">
+                <span class="xr-pitch-name">${tierIcon} ${p.label}</span>
+                <span class="xr-pitch-par-badge">Par ${p.par_range}</span>
+              </div>
+              <p class="xr-pitch-desc">${p.desc}</p>
+              
+              <div class="xr-pitch-metrics-rows">
+                <div class="xr-pitch-row">
+                  <span class="lbl">Sample Size</span>
+                  <span class="val"><strong>${p.matches}</strong> matches • <strong>${p.balls}</strong> balls</span>
+                </div>
+                <div class="xr-pitch-row">
+                  <span class="lbl">Conceded vs Par xRC</span>
+                  <span class="val"><strong>${p.runs_conceded}</strong> runs <span style="color:var(--text-muted); font-size:0.75rem;">(xRC: ${fmt(p.xrc, 1)})</span></span>
+                </div>
+                <div class="xr-pitch-row">
+                  <span class="lbl">Runs Saved (Surplus)</span>
+                  <span class="val ${pSavedClass}"><strong>${pSaved >= 0 ? '+' : ''}${fmt(pSaved, 1)}</strong></span>
+                </div>
+                <div class="xr-pitch-row">
+                  <span class="lbl">Economy vs Par</span>
+                  <span class="val"><strong>${fmt(p.actual_econ, 2)}</strong> vs <strong>${fmt(p.expected_econ, 2)}</strong></span>
+                </div>
+                <div class="xr-pitch-row">
+                  <span class="lbl">Containment Impact</span>
+                  <span class="val" style="color:#F59E0B; font-weight:700;">${fmt(p.impact_ratio, 2)}x Par</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      if (inningsBody && xr.top_innings) {
+        const thScore = document.getElementById('thXrInningsScore');
+        const thExpected = document.getElementById('thXrInningsExpected');
+        const thVal = document.getElementById('thXrInningsValue');
+        const thRate = document.getElementById('thXrInningsSR');
+        if (thScore) thScore.textContent = 'Conceded (Figures)';
+        if (thExpected) thExpected.textContent = 'Expected Conceded (xRC)';
+        if (thVal) thVal.textContent = 'Runs Saved';
+        if (thRate) thRate.textContent = 'Econ vs Pitch Par';
+
+        inningsBody.innerHTML = xr.top_innings.map(inn => `
+          <tr>
+            <td><strong>${inn.date}</strong> <span style="font-size:0.75rem; color:var(--text-muted);">#${inn.match_id}</span></td>
+            <td>${inn.venue}</td>
+            <td><span class="pitch-par-pill">${inn.pitch_par}</span></td>
+            <td><span class="pitch-cat-pill ${inn.pitch_category.toLowerCase()}">${inn.pitch_category}</span></td>
+            <td><strong style="color:#10B981;">${inn.runs_conceded} runs</strong> (${(inn.balls/6.0).toFixed(1)} ov • ${inn.wkts}w)</td>
+            <td>${fmt(inn.xrc, 1)}</td>
+            <td><strong class="text-green">+${fmt(inn.runs_saved, 1)}</strong></td>
+            <td><strong>${fmt(inn.actual_econ, 2)}</strong> vs ${fmt(inn.par_econ, 2)}</td>
+          </tr>
+        `).join('');
+      }
+
+    } else {
+      // BATTER MODE
+      if (titleEl) titleEl.textContent = 'Expected Runs & Run Value Audit (xR)';
+      if (subtitleEl) subtitleEl.textContent = 'Replaces raw strike rate with contextual run-value (e.g. 15-ball 25 on a 220 highway vs a 140 minefield)';
+      if (badgeEl) badgeEl.textContent = 'Contextual Batting Model Active';
+
+      const runValue = xr.run_value || 0;
+      const isPositiveValue = runValue >= 0;
+      const valClass = isPositiveValue ? 'text-green' : 'text-rose';
+      const valSign = runValue >= 0 ? '+' : '';
+
+      if (kpiGrid) {
+        kpiGrid.innerHTML = `
+          <div class="xr-kpi-tile">
+            <span class="xr-kpi-label">Career Run Value (RAE)</span>
+            <span class="xr-kpi-value ${valClass}">${valSign}${fmt(runValue, 1)}</span>
+            <span class="xr-kpi-sub">${isPositiveValue ? 'Runs Scored Above Pitch Par' : 'Runs Scored Below Pitch Demand'}</span>
+            <div class="xr-kpi-badge ${isPositiveValue ? 'positive' : 'negative'}">
+              ${isPositiveValue ? '▲ High-Impact Value Added' : '▼ Drag Below Pitch Par'}
+            </div>
+          </div>
+
+          <div class="xr-kpi-tile">
+            <span class="xr-kpi-label">Actual Runs vs Expected (xR)</span>
+            <span class="xr-kpi-value" style="color:#38BDF8;">${(xr.total_runs || 0).toLocaleString()} <span style="font-size:1rem; color:var(--text-muted); font-weight:500;">/ ${fmt(xr.expected_runs, 1)}</span></span>
+            <span class="xr-kpi-sub">Total Output vs Expected Across ${(xr.total_balls || 0).toLocaleString()} Balls</span>
+            <div class="xr-kpi-badge neutral">
+              ${fmt(xr.rv_per_100, 1)} runs value/100b
+            </div>
+          </div>
+
+          <div class="xr-kpi-tile">
+            <span class="xr-kpi-label">Contextual Strike Rate (SR vs xSR)</span>
+            <span class="xr-kpi-value" style="color:#10B981;">${fmt(xr.actual_sr, 1)} <span style="font-size:1rem; color:var(--text-muted); font-weight:500;">vs ${fmt(xr.expected_sr, 1)}</span></span>
+            <span class="xr-kpi-sub">Actual SR vs Pitch Condition Par SR</span>
+            <div class="xr-kpi-badge ${xr.actual_sr >= xr.expected_sr ? 'positive' : 'negative'}">
+              ${xr.actual_sr >= xr.expected_sr ? 'Outperforming Pitch Pace' : 'Below Pitch Pace'}
+            </div>
+          </div>
+
+          <div class="xr-kpi-tile">
+            <span class="xr-kpi-label">Contextual Impact Index</span>
+            <span class="xr-kpi-value" style="color:#F59E0B;">${fmt(xr.impact_ratio, 2)}x</span>
+            <span class="xr-kpi-sub">${xr.impact_ratio >= 1.0 ? '+' : ''}${fmt((xr.impact_ratio - 1.0)*100, 1)}% vs Pitch Demand</span>
+            <div class="xr-kpi-badge positive">
+              ${fmt((xr.actual_sr - xr.expected_sr), 1)} Strike Rate Surplus
+            </div>
+          </div>
+        `;
+      }
+
+      if (pitchGrid && xr.pitch_splits) {
+        pitchGrid.innerHTML = xr.pitch_splits.map(p => {
+          const isHard = p.category === 'HARD';
+          const isEasy = p.category === 'EASY';
+          const tierIcon = isHard ? '🛡️' : (isEasy ? '⚡' : '⚖️');
+          const tierBorder = isHard ? 'border-amber' : (isEasy ? 'border-blue' : 'border-slate');
+          const pVal = p.run_value || 0;
+          const pValClass = pVal >= 0 ? 'text-green' : 'text-rose';
+          return `
+            <div class="xr-pitch-card ${tierBorder}">
+              <div class="xr-pitch-card-header">
+                <span class="xr-pitch-name">${tierIcon} ${p.label}</span>
+                <span class="xr-pitch-par-badge">Par ${p.par_range}</span>
+              </div>
+              <p class="xr-pitch-desc">${p.desc}</p>
+              
+              <div class="xr-pitch-metrics-rows">
+                <div class="xr-pitch-row">
+                  <span class="lbl">Sample Size</span>
+                  <span class="val"><strong>${p.matches}</strong> matches • <strong>${p.balls}</strong> balls</span>
+                </div>
+                <div class="xr-pitch-row">
+                  <span class="lbl">Runs vs Expected (xR)</span>
+                  <span class="val"><strong>${p.runs}</strong> runs <span style="color:var(--text-muted); font-size:0.75rem;">(xR: ${fmt(p.xr, 1)})</span></span>
+                </div>
+                <div class="xr-pitch-row">
+                  <span class="lbl">Net Run Value (RAE)</span>
+                  <span class="val ${pValClass}"><strong>${pVal >= 0 ? '+' : ''}${fmt(pVal, 1)}</strong></span>
+                </div>
+                <div class="xr-pitch-row">
+                  <span class="lbl">Strike Rate vs Par</span>
+                  <span class="val"><strong>${fmt(p.actual_sr, 1)}</strong> vs <strong>${fmt(p.expected_sr, 1)}</strong></span>
+                </div>
+                <div class="xr-pitch-row">
+                  <span class="lbl">Contextual Impact</span>
+                  <span class="val" style="color:#F59E0B; font-weight:700;">${fmt(p.impact_ratio, 2)}x Par</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      if (inningsBody && xr.top_innings) {
+        const thScore = document.getElementById('thXrInningsScore');
+        const thExpected = document.getElementById('thXrInningsExpected');
+        const thVal = document.getElementById('thXrInningsValue');
+        const thRate = document.getElementById('thXrInningsSR');
+        if (thScore) thScore.textContent = 'Score (Runs / Balls)';
+        if (thExpected) thExpected.textContent = 'Expected (xR)';
+        if (thVal) thVal.textContent = 'Net Run Value (RAE)';
+        if (thRate) thRate.textContent = 'Strike Rate vs Par';
+
+        inningsBody.innerHTML = xr.top_innings.map(inn => `
+          <tr>
+            <td><strong>${inn.date}</strong> <span style="font-size:0.75rem; color:var(--text-muted);">#${inn.match_id}</span></td>
+            <td>${inn.venue}</td>
+            <td><span class="pitch-par-pill">${inn.pitch_par}</span></td>
+            <td><span class="pitch-cat-pill ${inn.pitch_category.toLowerCase()}">${inn.pitch_category}</span></td>
+            <td><strong style="color:#38BDF8;">${inn.runs} runs</strong> (${inn.balls} balls)</td>
+            <td>${fmt(inn.xr, 1)}</td>
+            <td><strong class="text-green">+${fmt(inn.run_value, 1)}</strong></td>
+            <td><strong>${fmt(inn.actual_sr, 1)}</strong> vs ${fmt(inn.par_sr, 1)}</td>
+          </tr>
+        `).join('');
+      }
+    }
+  }
+
+  async function fetchExpectedRuns(playerName, role) {
+    try {
+      const res = await fetch(`/api/player/xr?name=${encodeURIComponent(playerName)}&role=${role}&tournament=${state.currentTournament}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      updateExpectedRunsDisplay(data, role === 'bowl', playerName);
+    } catch (e) {
+      console.error('Error fetching xR:', e);
     }
   }
 
@@ -1979,6 +2344,85 @@ document.addEventListener('DOMContentLoaded', () => {
         }).join('');
       }
     }
+
+    // 6. Contextual Expected Runs & Pitch Comparison
+    renderCompareXr(data);
+  }
+
+  function renderCompareXr(data) {
+    const xrTableBody = document.getElementById('compareXrBody');
+    const thP1 = document.getElementById('thCompXrPlayer1');
+    const thP2 = document.getElementById('thCompXrPlayer2');
+    if (!xrTableBody || !data) return;
+
+    const p1Name = data.player1.display_name || data.player1.full_name || data.player1.cric_name;
+    const p2Name = data.player2.display_name || data.player2.full_name || data.player2.cric_name;
+    if (thP1) thP1.textContent = p1Name;
+    if (thP2) thP2.textContent = p2Name;
+
+    const xr1 = data.xr1;
+    const xr2 = data.xr2;
+
+    if (!xr1 || !xr2) {
+      xrTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:1rem;">Contextual pitch data not available for this combination.</td></tr>`;
+      return;
+    }
+
+    const isBowlComp = (data.comparison_type === 'bowler_vs_bowler');
+    const metricLabel = isBowlComp ? 'Runs Saved (Containment)' : 'Run Value (RAE)';
+    const rateLabel = isBowlComp ? 'Economy vs Par' : 'SR vs Par';
+
+    const v1 = isBowlComp ? (xr1.runs_saved || 0) : (xr1.run_value || 0);
+    const v2 = isBowlComp ? (xr2.runs_saved || 0) : (xr2.run_value || 0);
+    const advBadge = getAdvantageBadge(v1, v2, true, p1Name.split(' ').pop(), p2Name.split(' ').pop());
+
+    let rowsHtml = `
+      <tr style="background: rgba(56, 189, 248, 0.05);">
+        <td><strong>Overall Contextual ${metricLabel}</strong></td>
+        <td><strong style="color:${v1 >= 0 ? '#10B981':'#F43F5E'};">${v1 >= 0 ? '+':''}${fmt(v1, 1)} runs</strong></td>
+        <td><strong style="color:${v2 >= 0 ? '#10B981':'#F43F5E'};">${v2 >= 0 ? '+':''}${fmt(v2, 1)} runs</strong></td>
+        <td>${advBadge}</td>
+      </tr>
+      <tr>
+        <td><strong>Contextual Impact Multiplier</strong></td>
+        <td><strong style="color:#F59E0B;">${fmt(xr1.impact_ratio, 2)}x Par</strong></td>
+        <td><strong style="color:#F59E0B;">${fmt(xr2.impact_ratio, 2)}x Par</strong></td>
+        <td>${getAdvantageBadge(xr1.impact_ratio, xr2.impact_ratio, true, p1Name.split(' ').pop(), p2Name.split(' ').pop())}</td>
+      </tr>
+    `;
+
+    const tiers = [
+      { cat: 'HARD', name: '🛡️ Hard Pitches (Par < 155)' },
+      { cat: 'BALANCED', name: '⚖️ Balanced Decks (Par 155-184)' },
+      { cat: 'EASY', name: '⚡ Flat Highways (Par 185+)' }
+    ];
+
+    tiers.forEach(t => {
+      const s1 = (xr1.pitch_splits || []).find(p => p.category === t.cat) || {};
+      const s2 = (xr2.pitch_splits || []).find(p => p.category === t.cat) || {};
+      const val1 = isBowlComp ? (s1.runs_saved || 0) : (s1.run_value || 0);
+      const val2 = isBowlComp ? (s2.runs_saved || 0) : (s2.run_value || 0);
+      const rate1 = isBowlComp ? `${fmt(s1.actual_econ, 2)} vs ${fmt(s1.expected_econ, 2)}` : `${fmt(s1.actual_sr, 1)} vs ${fmt(s1.expected_sr, 1)}`;
+      const rate2 = isBowlComp ? `${fmt(s2.actual_econ, 2)} vs ${fmt(s2.expected_econ, 2)}` : `${fmt(s2.actual_sr, 1)} vs ${fmt(s2.expected_sr, 1)}`;
+      const pAdv = getAdvantageBadge(val1, val2, true, p1Name.split(' ').pop(), p2Name.split(' ').pop());
+
+      rowsHtml += `
+        <tr>
+          <td><strong>${t.name}</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">${rateLabel}</span></td>
+          <td>
+            <strong style="color:${val1 >= 0 ? '#10B981':'#F43F5E'};">${val1 >= 0 ? '+':''}${fmt(val1, 1)} runs</strong>
+            <div style="font-size:0.75rem; color:#94A3B8;">${rate1}</div>
+          </td>
+          <td>
+            <strong style="color:${val2 >= 0 ? '#10B981':'#F43F5E'};">${val2 >= 0 ? '+':''}${fmt(val2, 1)} runs</strong>
+            <div style="font-size:0.75rem; color:#94A3B8;">${rate2}</div>
+          </td>
+          <td>${pAdv}</td>
+        </tr>
+      `;
+    });
+
+    xrTableBody.innerHTML = rowsHtml;
   }
 
   // ==========================================================================

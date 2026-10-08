@@ -64,6 +64,9 @@ from matchup_engine import (
     get_batter_matchup_splits,
     get_bowler_matchup_splits,
     plot_matchup_splits_comparison,
+    plot_matchup_phase_splits,
+    get_player_expected_runs,
+    plot_xr_pitch_splits,
     GLOBAL_TOURNAMENTS,
     INDIAN_PLAYER_METADATA,
     get_t20_db_connection
@@ -390,6 +393,19 @@ def player_audit():
             buf.seek(0)
             init_sp['image_b64'] = base64.b64encode(buf.read()).decode('utf-8')
             plt.close('all')
+
+            init_archs = init_sp.get('archetypes', [])
+            init_hands = init_sp.get('hands', [])
+            init_has_multi = (len(init_archs) >= 2) if init_role == 'bat' else (len(init_hands) >= 2)
+            if init_has_multi and 'phases' in init_sp:
+                buf_ph = io.BytesIO()
+                plot_matchup_phase_splits(init_sp, show_plot=True, save_path=buf_ph)
+                buf_ph.seek(0)
+                init_sp['phase_image_b64'] = base64.b64encode(buf_ph.read()).decode('utf-8')
+                plt.close('all')
+            else:
+                init_sp['phase_image_b64'] = None
+
             init_sp['role'] = 'Batter' if init_role == 'bat' else 'Bowler'
             init_sp['active_role'] = init_role
             
@@ -398,7 +414,69 @@ def player_audit():
         print(f"[!] Error generating initial splits for {cric_name}: {e}")
         res['initial_splits'] = None
 
+    # 4. Contextual Expected Runs & Pitch Value Audit (xR)
+    try:
+        init_xr_role = 'bowler' if role == 'Bowler' else 'batter'
+        if has_batting:
+            res['batting_xr'] = get_player_expected_runs(cric_name, role='Batter', tournament=tournament)
+        if has_bowling:
+            res['bowling_xr'] = get_player_expected_runs(cric_name, role='Bowler', tournament=tournament)
+            
+        initial_xr = res.get('bowling_xr') if init_xr_role == 'bowler' else res.get('batting_xr')
+        if initial_xr:
+            buf = io.BytesIO()
+            plt.close('all')
+            plot_xr_pitch_splits(initial_xr, disp_name, show_plot=True, save_path=buf)
+            buf.seek(0)
+            initial_xr['image_b64'] = base64.b64encode(buf.read()).decode('utf-8')
+            plt.close('all')
+            initial_xr['active_role'] = 'bowl' if init_xr_role == 'bowler' else 'bat'
+        res['initial_xr'] = initial_xr
+    except Exception as e:
+        print(f"[!] Error generating initial xR for {cric_name}: {e}")
+        res['initial_xr'] = None
+
     return jsonify(sanitize_json(res))
+
+
+@app.route('/api/player/xr')
+def player_expected_runs_api():
+    name = request.args.get('name', 'Virat Kohli').strip()
+    role = request.args.get('role', 'auto').strip().lower()
+    tournament = request.args.get('tournament', 'ALL').strip()
+
+    cric_name = resolve_player_name(name)
+    disp_name = get_player_display_name(cric_name)
+    df = get_player_deliveries(cric_name, tournament=tournament)
+    if len(df) == 0:
+        return jsonify({'error': f"No deliveries found for '{name}' in tournament '{tournament}'."}), 404
+
+    meta = auto_detect_player_meta(cric_name, df)
+    detected_role = meta.get('role', 'Batter')
+
+    if role == 'auto':
+        eff_role = 'Bowler' if detected_role == 'Bowler' else 'Batter'
+    else:
+        eff_role = 'Bowler' if 'bowl' in role else 'Batter'
+
+    xr_data = get_player_expected_runs(cric_name, role=eff_role, tournament=tournament)
+    if not xr_data:
+        return jsonify({'error': f"Could not compute Expected Runs for '{cric_name}'."}), 404
+
+    buf = io.BytesIO()
+    plt.close('all')
+    plot_xr_pitch_splits(xr_data, disp_name, show_plot=True, save_path=buf)
+    buf.seek(0)
+    xr_data['image_b64'] = base64.b64encode(buf.read()).decode('utf-8')
+    plt.close('all')
+
+    xr_data['player_query'] = name
+    xr_data['full_name'] = get_player_full_name(cric_name)
+    xr_data['display_name'] = disp_name
+    xr_data['active_role'] = 'bowl' if eff_role == 'Bowler' else 'bat'
+    xr_data['meta'] = meta
+
+    return jsonify(sanitize_json(xr_data))
 
 
 @app.route('/api/player/splits')
@@ -441,6 +519,19 @@ def player_splits():
     buf.seek(0)
     splits['image_b64'] = base64.b64encode(buf.read()).decode('utf-8')
     plt.close('all')
+
+    # If multiple bowling styles (or batter hands) are selected, also generate the phase shootout graphic
+    archs = splits.get('archetypes', [])
+    hands = splits.get('hands', [])
+    has_multi = (len(archs) >= 2) if eff_role == 'bat' else (len(hands) >= 2)
+    if has_multi and 'phases' in splits:
+        buf_ph = io.BytesIO()
+        plot_matchup_phase_splits(splits, show_plot=True, save_path=buf_ph)
+        buf_ph.seek(0)
+        splits['phase_image_b64'] = base64.b64encode(buf_ph.read()).decode('utf-8')
+        plt.close('all')
+    else:
+        splits['phase_image_b64'] = None
 
     splits['player_query'] = name
     splits['meta'] = meta
@@ -680,6 +771,12 @@ def player_comparison():
     else:
         res['p1_stats'] = get_batter_phase_stats(c1, df1, vs_bowler_type=vs_bowler_type)
         res['p2_stats'] = get_batter_phase_stats(c2, df2, vs_bowler_type=vs_bowler_type)
+
+    try:
+        res['xr1'] = get_player_expected_runs(c1, role='Bowler' if is_bowler_comp or (is_duel and eff_mode == 'bowl_vs_bat') else 'Batter', tournament=tournament)
+        res['xr2'] = get_player_expected_runs(c2, role='Bowler' if is_bowler_comp or (is_duel and eff_mode == 'bat_vs_bowl') else 'Batter', tournament=tournament)
+    except Exception as e:
+        print(f"[!] Warning comparing xR: {e}")
         
     return jsonify(sanitize_json(res))
 

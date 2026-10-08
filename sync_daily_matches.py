@@ -336,6 +336,14 @@ def sync_recent_matches(days=2):
             added_details.append(f"#{match_id} ({event_name} • {teams_str} • {deliv_count} balls)")
             print(f"    [+] Ingested #{match_id}: {event_name} ({teams_str}) — {deliv_count} deliveries")
 
+    if new_t20_matches > 0:
+        try:
+            from matchup_engine import ensure_match_baselines_table
+            ensure_match_baselines_table(conn)
+            print("    [+] Updated match_baselines table with newly synced matches.")
+        except Exception as e:
+            print(f"    [!] Warning updating match baselines: {e}")
+
     conn.close()
 
     # Update sync_log.md
