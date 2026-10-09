@@ -3551,14 +3551,267 @@ def ensure_match_baselines_table(conn=None):
         conn.commit()
 
 
-def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament: str = 'ALL') -> dict:
+# ==============================================================================
+# VENUE NORMALIZATION REGISTRY (Deduplication across 18 Global Leagues)
+# ==============================================================================
+VENUE_MAPPINGS = {
+    # Chinnaswamy
+    "M Chinnaswamy Stadium": "M Chinnaswamy Stadium, Bengaluru",
+    "M Chinnaswamy Stadium, Bangalore": "M Chinnaswamy Stadium, Bengaluru",
+    "M.Chinnaswamy Stadium": "M Chinnaswamy Stadium, Bengaluru",
+    
+    # Wankhede
+    "Wankhede Stadium": "Wankhede Stadium, Mumbai",
+    
+    # Eden Gardens
+    "Eden Gardens": "Eden Gardens, Kolkata",
+    
+    # MA Chidambaram / Chepauk
+    "MA Chidambaram Stadium": "MA Chidambaram Stadium (Chepauk), Chennai",
+    "MA Chidambaram Stadium, Chepauk": "MA Chidambaram Stadium (Chepauk), Chennai",
+    "MA Chidambaram Stadium, Chepauk, Chennai": "MA Chidambaram Stadium (Chepauk), Chennai",
+    
+    # Arun Jaitley / Kotla
+    "Arun Jaitley Stadium": "Arun Jaitley Stadium, Delhi",
+    "Feroz Shah Kotla": "Arun Jaitley Stadium, Delhi",
+    
+    # Rajiv Gandhi / Uppal
+    "Rajiv Gandhi International Stadium": "Rajiv Gandhi International Stadium, Hyderabad",
+    "Rajiv Gandhi International Stadium, Uppal": "Rajiv Gandhi International Stadium, Hyderabad",
+    "Rajiv Gandhi International Stadium, Uppal, Hyderabad": "Rajiv Gandhi International Stadium, Hyderabad",
+    
+    # PCA IS Bindra / Mohali
+    "Punjab Cricket Association Stadium, Mohali": "PCA IS Bindra Stadium, Mohali",
+    "Punjab Cricket Association IS Bindra Stadium": "PCA IS Bindra Stadium, Mohali",
+    "Punjab Cricket Association IS Bindra Stadium, Mohali": "PCA IS Bindra Stadium, Mohali",
+    "Punjab Cricket Association IS Bindra Stadium, Mohali, Chandigarh": "PCA IS Bindra Stadium, Mohali",
+    
+    # Narendra Modi / Motera
+    "Narendra Modi Stadium": "Narendra Modi Stadium, Ahmedabad",
+    "Narendra Modi Stadium Ground 'A', Motera": "Narendra Modi Stadium, Ahmedabad",
+    "Sardar Patel Stadium, Motera": "Narendra Modi Stadium, Ahmedabad",
+    
+    # Ekana Lucknow
+    "Bharat Ratna Shri Atal Bihari Vajpayee Ekana Cricket Stadium": "BRSABV Ekana Stadium, Lucknow",
+    "Bharat Ratna Shri Atal Bihari Vajpayee Ekana Cricket Stadium B": "BRSABV Ekana Stadium, Lucknow",
+    "Bharat Ratna Shri Atal Bihari Vajpayee Ekana Cricket Stadium, Lucknow": "BRSABV Ekana Stadium, Lucknow",
+    
+    # Sawai Mansingh Jaipur
+    "Sawai Mansingh Stadium": "Sawai Mansingh Stadium, Jaipur",
+    
+    # Brabourne Mumbai
+    "Brabourne Stadium": "Brabourne Stadium, Mumbai",
+    
+    # Dr DY Patil Mumbai
+    "Dr DY Patil Sports Academy": "Dr DY Patil Sports Academy, Mumbai",
+    
+    # Holkar Indore
+    "Holkar Stadium": "Holkar Cricket Stadium, Indore",
+    "Holkar Cricket Stadium": "Holkar Cricket Stadium, Indore",
+    
+    # MCA Pune / Subrata Roy
+    "Maharashtra Cricket Association Stadium": "MCA International Stadium, Pune",
+    "Subrata Roy Sahara Stadium": "MCA International Stadium, Pune",
+    "Maharashtra Cricket Association Stadium, Pune": "MCA International Stadium, Pune",
+    
+    # Barabati Cuttack
+    "Barabati Stadium": "Barabati Stadium, Cuttack",
+    
+    # Green Park Kanpur
+    "Green Park": "Green Park, Kanpur",
+    
+    # HPCA Dharamsala
+    "Himachal Pradesh Cricket Association Stadium": "HPCA Stadium, Dharamshala",
+    "Himachal Pradesh Cricket Association Stadium, Dharamsala": "HPCA Stadium, Dharamshala",
+    
+    # JSCA Ranchi
+    "JSCA International Stadium Complex": "JSCA International Stadium Complex, Ranchi",
+    
+    # Saurashtra Rajkot
+    "Saurashtra Cricket Association Stadium": "Saurashtra Cricket Association Stadium, Rajkot",
+    
+    # Raipur
+    "Shaheed Veer Narayan Singh International Stadium": "Shaheed Veer Narayan Singh Stadium, Raipur",
+    "Shaheed Veer Narayan Singh International Stadium, Raipur": "Shaheed Veer Narayan Singh Stadium, Raipur",
+    
+    # VCA Nagpur
+    "Vidarbha Cricket Association Stadium, Jamtha": "VCA Stadium, Jamtha, Nagpur",
+    "Vidarbha Cricket Association Stadium, Jamtha, Nagpur": "VCA Stadium, Jamtha, Nagpur",
+    
+    # Mullanpur
+    "Maharaja Yadavindra Singh International Cricket Stadium, Mullanpur": "Maharaja Yadavindra Singh Stadium, Mullanpur",
+    "Maharaja Yadavindra Singh International Cricket Stadium, New Chandigarh": "Maharaja Yadavindra Singh Stadium, Mullanpur",
+    
+    # Sheikh Zayed Abu Dhabi
+    "Sheikh Zayed Stadium": "Sheikh Zayed Stadium, Abu Dhabi",
+    "Zayed Cricket Stadium, Abu Dhabi": "Sheikh Zayed Stadium, Abu Dhabi",
+    
+    # The Gabba Brisbane
+    "Brisbane Cricket Ground": "The Gabba, Brisbane",
+    "Brisbane Cricket Ground, Woolloongabba": "The Gabba, Brisbane",
+    "Brisbane Cricket Ground, Woolloongabba, Brisbane": "The Gabba, Brisbane",
+    
+    # Bellerive Oval Hobart
+    "Bellerive Oval": "Bellerive Oval, Hobart",
+    
+    # The Oval London
+    "Kennington Oval": "The Oval, London",
+    "Kennington Oval, London": "The Oval, London",
+    
+    # Lord's London
+    "Lord's": "Lord's, London",
+    
+    # Edgbaston Birmingham
+    "Edgbaston": "Edgbaston, Birmingham",
+    
+    # Old Trafford Manchester
+    "Old Trafford": "Old Trafford, Manchester",
+    
+    # Trent Bridge Nottingham
+    "Trent Bridge": "Trent Bridge, Nottingham",
+    
+    # Headingley Leeds
+    "Headingley": "Headingley, Leeds",
+    
+    # Sophia Gardens Cardiff
+    "Sophia Gardens": "Sophia Gardens, Cardiff",
+    
+    # The Rose Bowl Southampton
+    "The Rose Bowl": "The Rose Bowl, Southampton",
+    
+    # Shere Bangla Mirpur
+    "Shere Bangla National Stadium": "Shere Bangla National Stadium, Mirpur",
+    
+    # R Premadasa Colombo
+    "R Premadasa Stadium": "R Premadasa Stadium, Colombo",
+    "R.Premadasa Stadium, Khettarama": "R Premadasa Stadium, Colombo",
+    
+    # Gaddafi Lahore
+    "Gaddafi Stadium": "Gaddafi Stadium, Lahore",
+    
+    # Kensington Oval Barbados
+    "Kensington Oval": "Kensington Oval, Barbados",
+    "Kensington Oval, Bridgetown": "Kensington Oval, Barbados",
+    "Kensington Oval, Bridgetown, Barbados": "Kensington Oval, Barbados",
+    
+    # Providence Guyana
+    "Providence Stadium": "Providence Stadium, Guyana",
+    
+    # Daren Sammy St Lucia
+    "Daren Sammy National Cricket Stadium, Gros Islet": "Daren Sammy Cricket Ground, St Lucia",
+    "Daren Sammy National Cricket Stadium, Gros Islet, St Lucia": "Daren Sammy Cricket Ground, St Lucia",
+    
+    # Queen's Park Oval Trinidad
+    "Queen's Park Oval, Port of Spain": "Queen's Park Oval, Trinidad",
+    "Queen's Park Oval, Port of Spain, Trinidad": "Queen's Park Oval, Trinidad",
+    
+    # Brian Lara Trinidad
+    "Brian Lara Stadium, Tarouba": "Brian Lara Cricket Academy, Trinidad",
+    "Brian Lara Stadium, Tarouba, Trinidad": "Brian Lara Cricket Academy, Trinidad",
+    
+    # Warner Park St Kitts
+    "Warner Park, Basseterre": "Warner Park, St Kitts",
+    "Warner Park, Basseterre, St Kitts": "Warner Park, St Kitts",
+    
+    # Wanderers Johannesburg
+    "New Wanderers Stadium": "Wanderers Stadium, Johannesburg",
+    "New Wanderers Stadium, Johannesburg": "Wanderers Stadium, Johannesburg",
+    "The Wanderers Stadium": "Wanderers Stadium, Johannesburg",
+    "The Wanderers Stadium, Johannesburg": "Wanderers Stadium, Johannesburg",
+    "Wanderers": "Wanderers Stadium, Johannesburg",
+    
+    # SuperSport Park Centurion
+    "SuperSport Park": "SuperSport Park, Centurion",
+    
+    # Kingsmead Durban
+    "Kingsmead": "Kingsmead, Durban",
+    
+    # Newlands Cape Town
+    "Newlands": "Newlands, Cape Town",
+    
+    # St George's Park Gqeberha
+    "St George's Park": "St George's Park, Gqeberha",
+    "St George's Park, Port Elizabeth": "St George's Park, Gqeberha",
+    
+    # Seddon Park Hamilton
+    "Seddon Park": "Seddon Park, Hamilton",
+    
+    # Hagley Oval Christchurch
+    "Hagley Oval": "Hagley Oval, Christchurch",
+    
+    # Bay Oval Mount Maunganui
+    "Bay Oval": "Bay Oval, Mount Maunganui",
+    
+    # Eden Park Auckland (main)
+    "Eden Park": "Eden Park, Auckland",
+    "Eden Park Outer Oval": "Eden Park Outer Oval, Auckland",
+    
+    # Manuka Oval Canberra
+    "Manuka Oval": "Manuka Oval, Canberra",
+    
+    # Diamond Oval Kimberley
+    "De Beers Diamond Oval": "Diamond Oval, Kimberley",
+    "De Beers Diamond Oval, Kimberley": "Diamond Oval, Kimberley",
+    
+    # Mangaung Oval Bloemfontein
+    "Mangaung Oval": "Mangaung Oval, Bloemfontein",
+    "OUTsurance Oval": "Mangaung Oval, Bloemfontein",
+    
+    # P Sara Colombo
+    "P Sara Oval": "P Sara Oval, Colombo",
+    
+    # Saxton Oval Nelson
+    "Saxton Oval": "Saxton Oval, Nelson",
+    
+    # University Oval Dunedin
+    "University Oval": "University Oval, Dunedin",
+    
+    # National Cricket Stadium Grenada
+    "National Cricket Stadium, St George's": "National Cricket Stadium, Grenada",
+    "National Cricket Stadium, St George's, Grenada": "National Cricket Stadium, Grenada",
+    
+    # Sabina Park Jamaica
+    "Sabina Park, Kingston": "Sabina Park, Kingston, Jamaica",
+    
+    # Sir Vivian Richards Stadium Antigua
+    "Sir Vivian Richards Stadium, North Sound": "Sir Vivian Richards Stadium, North Sound, Antigua",
+    
+    # The Village Malahide Dublin
+    "The Village, Malahide": "The Village, Malahide, Dublin",
+    
+    # Sky Stadium Wellington
+    "Sky Stadium": "Sky Stadium, Wellington",
+    
+    # McLean Park Napier
+    "McLean Park": "McLean Park, Napier",
+    
+    # Zahur Ahmed Chowdhury Stadium Chittagong
+    "Zahur Ahmed Chowdhury Stadium, Chittagong": "Zahur Ahmed Chowdhury Stadium, Chattogram",
+    "Zahur Ahmed Chowdhury Stadium": "Zahur Ahmed Chowdhury Stadium, Chattogram",
+    
+    # Sheikh Abu Naser Stadium Khulna
+    "Sheikh Abu Naser Stadium": "Sheikh Abu Naser Stadium, Khulna",
+    
+    # Tribhuvan University Kirtipur
+    "Tribhuvan University International Cricket Ground": "Tribhuvan University Ground, Kirtipur",
+    "Tribhuvan University International Cricket Ground, Kirtipur": "Tribhuvan University Ground, Kirtipur"
+}
+
+
+def normalize_venue_name(venue: str) -> str:
+    """Returns canonical venue name merging regional / naming variants."""
+    if not venue:
+        return venue
+    v_clean = str(venue).strip()
+    return VENUE_MAPPINGS.get(v_clean, v_clean)
+
+
+def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament: str = 'ALL', pitch_category: str = 'ALL', venue: str = 'ALL') -> dict:
     """
     Computes Contextual Expected Runs (xR) and Run Value (RAE / Saved Runs)
     by benchmarking ball-by-ball output against pitch and match difficulty.
-    Categorizes performance across:
-      - HARD Pitches: Par < 155 (Bowling minefields, sticky/turning decks)
-      - BALANCED Pitches: Par 155 - 184 (Standard competitive T20 surfaces)
-      - EASY Pitches: Par 185+ (High-scoring batting highways)
+    Supports filtering by specific pitch category ('HARD', 'BALANCED', 'EASY')
+    or specific stadium / venue.
     """
     cric_name = resolve_player_name(player_name)
     conn = get_t20_db_connection()
@@ -3593,26 +3846,18 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
             JOIN match_baselines mb ON d.match_id = mb.match_id
             WHERE d.striker = ? {tourn_filter}
         """
-        df = pd.read_sql(q, conn, params=params)
-        if len(df) == 0:
+        df_all = pd.read_sql(q, conn, params=params)
+        if len(df_all) == 0:
             return None
 
-        total_balls = len(df)
-        total_runs = int(df['runs_off_bat'].sum())
-        total_xr = float(df['exp_rpb'].sum())
-        run_value = total_runs - total_xr
-        actual_sr = round(total_runs * 100.0 / max(1, total_balls), 1)
-        expected_sr = round(total_xr * 100.0 / max(1, total_balls), 1)
-        impact_ratio = round(total_runs / max(0.1, total_xr), 2)
-        rv_per_100 = round(run_value * 100.0 / max(1, total_balls), 2)
-
+        # 1. Pitch Category Splits across all deliveries
         pitch_splits = []
         for pcat, label, desc, par_range in [
             ('HARD', 'Tough / Bowling Minefields', 'Sticky & turning pitches with Par < 155 (e.g. Mirpur, Chepauk turners, Lucknow)', '< 155'),
             ('BALANCED', 'Sporting / Balanced Decks', 'Standard competitive T20 surfaces with Par 155 – 184', '155 – 184'),
             ('EASY', 'Flat Highways / Batting Paradises', 'High-scoring roads with Par 185+ (e.g. Chinnaswamy, Wankhede, Hyderabad)', '185+')
         ]:
-            sub = df[df['pitch_category'] == pcat]
+            sub = df_all[df_all['pitch_category'] == pcat]
             if len(sub) > 0:
                 s_balls = len(sub)
                 s_runs = int(sub['runs_off_bat'].sum())
@@ -3634,53 +3879,113 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
                     'impact_ratio': round(s_runs / max(0.1, s_xr), 2)
                 })
 
-        phase_splits = []
-        for ph in ['Powerplay', 'Middle', 'Death']:
-            sub = df[df['phase'] == ph]
-            if len(sub) > 0:
-                s_balls = len(sub)
-                s_runs = int(sub['runs_off_bat'].sum())
-                s_xr = float(sub['exp_rpb'].sum())
-                s_rv = s_runs - s_xr
-                phase_splits.append({
-                    'phase': ph,
-                    'balls': s_balls,
-                    'runs': s_runs,
-                    'xr': round(s_xr, 1),
-                    'run_value': round(s_rv, 1),
-                    'actual_sr': round(s_runs * 100.0 / max(1, s_balls), 1),
-                    'expected_sr': round(s_xr * 100.0 / max(1, s_balls), 1)
-                })
-
-        match_agg = df.groupby(['match_id', 'venue', 'start_date', 'par_score_20', 'pitch_category']).agg(
+        # 2. Stadium / Venue Breakdown across all deliveries
+        venue_splits = []
+        v_agg = df_all.groupby('venue').agg(
+            matches=('match_id', 'nunique'),
             balls=('runs_off_bat', 'count'),
             runs=('runs_off_bat', 'sum'),
-            xr=('exp_rpb', 'sum')
-        ).reset_index()
-        match_agg['run_value'] = match_agg['runs'] - match_agg['xr']
-        match_agg['actual_sr'] = (match_agg['runs'] * 100.0 / match_agg['balls'].clip(lower=1)).round(1)
-        match_agg['par_sr'] = (match_agg['xr'] * 100.0 / match_agg['balls'].clip(lower=1)).round(1)
-        top_matches = match_agg[match_agg['balls'] >= 8].sort_values('run_value', ascending=False).head(5)
-        top_innings = []
-        for _, r in top_matches.iterrows():
-            top_innings.append({
-                'match_id': int(r['match_id']),
-                'venue': r['venue'],
-                'date': str(r['start_date'])[:10],
-                'balls': int(r['balls']),
-                'runs': int(r['runs']),
-                'xr': round(float(r['xr']), 1),
-                'run_value': round(float(r['run_value']), 1),
-                'actual_sr': float(r['actual_sr']),
-                'par_sr': float(r['par_sr']),
-                'pitch_par': round(float(r['par_score_20']), 0),
-                'pitch_category': r['pitch_category']
+            xr=('exp_rpb', 'sum'),
+            avg_par=('par_score_20', 'mean')
+        ).reset_index().sort_values('balls', ascending=False)
+
+        for _, vr in v_agg.iterrows():
+            v_balls = int(vr['balls'])
+            if v_balls < 6:
+                continue
+            v_runs = int(vr['runs'])
+            v_xr = float(vr['xr'])
+            v_rv = round(v_runs - v_xr, 1)
+            venue_splits.append({
+                'venue': str(vr['venue']),
+                'matches': int(vr['matches']),
+                'balls': v_balls,
+                'runs': v_runs,
+                'xr': round(v_xr, 1),
+                'run_value': v_rv,
+                'actual_sr': round(v_runs * 100.0 / max(1, v_balls), 1),
+                'expected_sr': round(v_xr * 100.0 / max(1, v_balls), 1),
+                'avg_par': round(float(vr['avg_par']), 0)
             })
+
+        # 3. Apply active filters
+        df = df_all.copy()
+        if pitch_category and str(pitch_category).strip().upper() != 'ALL':
+            df = df[df['pitch_category'] == str(pitch_category).strip().upper()]
+        if venue and str(venue).strip() != 'ALL':
+            v_str = str(venue).strip()
+            norm_v = normalize_venue_name(v_str)
+            df = df[(df['venue'] == v_str) | (df['venue'] == norm_v)]
+
+        total_balls = len(df)
+        if total_balls == 0:
+            total_runs = 0
+            total_xr = 0.0
+            run_value = 0.0
+            actual_sr = 0.0
+            expected_sr = 0.0
+            impact_ratio = 0.0
+            rv_per_100 = 0.0
+            phase_splits = []
+            top_innings = []
+        else:
+            total_runs = int(df['runs_off_bat'].sum())
+            total_xr = float(df['exp_rpb'].sum())
+            run_value = total_runs - total_xr
+            actual_sr = round(total_runs * 100.0 / max(1, total_balls), 1)
+            expected_sr = round(total_xr * 100.0 / max(1, total_balls), 1)
+            impact_ratio = round(total_runs / max(0.1, total_xr), 2)
+            rv_per_100 = round(run_value * 100.0 / max(1, total_balls), 2)
+
+            phase_splits = []
+            for ph in ['Powerplay', 'Middle', 'Death']:
+                sub = df[df['phase'] == ph]
+                if len(sub) > 0:
+                    s_balls = len(sub)
+                    s_runs = int(sub['runs_off_bat'].sum())
+                    s_xr = float(sub['exp_rpb'].sum())
+                    s_rv = s_runs - s_xr
+                    phase_splits.append({
+                        'phase': ph,
+                        'balls': s_balls,
+                        'runs': s_runs,
+                        'xr': round(s_xr, 1),
+                        'run_value': round(s_rv, 1),
+                        'actual_sr': round(s_runs * 100.0 / max(1, s_balls), 1),
+                        'expected_sr': round(s_xr * 100.0 / max(1, s_balls), 1)
+                    })
+
+            match_agg = df.groupby(['match_id', 'venue', 'start_date', 'par_score_20', 'pitch_category']).agg(
+                balls=('runs_off_bat', 'count'),
+                runs=('runs_off_bat', 'sum'),
+                xr=('exp_rpb', 'sum')
+            ).reset_index()
+            match_agg['run_value'] = match_agg['runs'] - match_agg['xr']
+            match_agg['actual_sr'] = (match_agg['runs'] * 100.0 / match_agg['balls'].clip(lower=1)).round(1)
+            match_agg['par_sr'] = (match_agg['xr'] * 100.0 / match_agg['balls'].clip(lower=1)).round(1)
+            top_matches = match_agg[match_agg['balls'] >= 8].sort_values('run_value', ascending=False).head(5)
+            top_innings = []
+            for _, r in top_matches.iterrows():
+                top_innings.append({
+                    'match_id': int(r['match_id']),
+                    'venue': r['venue'],
+                    'date': str(r['start_date'])[:10],
+                    'balls': int(r['balls']),
+                    'runs': int(r['runs']),
+                    'xr': round(float(r['xr']), 1),
+                    'run_value': round(float(r['run_value']), 1),
+                    'actual_sr': float(r['actual_sr']),
+                    'par_sr': float(r['par_sr']),
+                    'pitch_par': round(float(r['par_score_20']), 0),
+                    'pitch_category': r['pitch_category']
+                })
 
         return {
             'cric_name': cric_name,
             'role': 'Batter',
             'tournament': tournament,
+            'active_pitch_category': pitch_category,
+            'active_venue': venue,
             'total_balls': total_balls,
             'total_runs': total_runs,
             'expected_runs': round(total_xr, 1),
@@ -3690,6 +3995,7 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
             'impact_ratio': impact_ratio,
             'rv_per_100': rv_per_100,
             'pitch_splits': pitch_splits,
+            'venue_splits': venue_splits,
             'phase_splits': phase_splits,
             'top_innings': top_innings
         }
@@ -3717,27 +4023,18 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
             JOIN match_baselines mb ON d.match_id = mb.match_id
             WHERE d.bowler = ? {tourn_filter}
         """
-        df = pd.read_sql(q, conn, params=params)
-        if len(df) == 0:
+        df_all = pd.read_sql(q, conn, params=params)
+        if len(df_all) == 0:
             return None
 
-        total_balls = len(df)
-        overs = round(total_balls / 6.0, 1)
-        total_conceded = int(df['total_runs_conceded'].sum())
-        total_xrc = float(df['exp_rpb'].sum())
-        runs_saved = total_xrc - total_conceded
-        actual_econ = round(total_conceded / max(0.1, total_balls / 6.0), 2)
-        expected_econ = round(total_xrc / max(0.1, total_balls / 6.0), 2)
-        impact_ratio = round(total_xrc / max(0.1, total_conceded), 2)
-        saved_per_match = round(runs_saved / max(1.0, total_balls / 24.0), 2)
-
+        # 1. Pitch Category Splits across all deliveries
         pitch_splits = []
         for pcat, label, desc, par_range in [
             ('HARD', 'Tough / Bowling Minefields', 'Low-scoring decks where par is < 155', '< 155'),
             ('BALANCED', 'Sporting / Balanced Decks', 'Standard competitive surfaces with Par 155 – 184', '155 – 184'),
             ('EASY', 'Flat Highways / Batting Paradises', 'High-scoring roads with Par 185+ (Damage containment test)', '185+')
         ]:
-            sub = df[df['pitch_category'] == pcat]
+            sub = df_all[df_all['pitch_category'] == pcat]
             if len(sub) > 0:
                 s_balls = len(sub)
                 s_conceded = int(sub['total_runs_conceded'].sum())
@@ -3759,55 +4056,117 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
                     'impact_ratio': round(s_xrc / max(0.1, s_conceded), 2)
                 })
 
-        phase_splits = []
-        for ph in ['Powerplay', 'Middle', 'Death']:
-            sub = df[df['phase'] == ph]
-            if len(sub) > 0:
-                s_balls = len(sub)
-                s_conceded = int(sub['total_runs_conceded'].sum())
-                s_xrc = float(sub['exp_rpb'].sum())
-                s_saved = s_xrc - s_conceded
-                phase_splits.append({
-                    'phase': ph,
-                    'balls': s_balls,
-                    'runs_conceded': s_conceded,
-                    'xrc': round(s_xrc, 1),
-                    'runs_saved': round(s_saved, 1),
-                    'actual_econ': round(s_conceded / max(0.1, s_balls / 6.0), 2),
-                    'expected_econ': round(s_xrc / max(0.1, s_balls / 6.0), 2)
-                })
-
-        match_agg = df.groupby(['match_id', 'venue', 'start_date', 'par_score_20', 'pitch_category']).agg(
+        # 2. Stadium / Venue Breakdown across all deliveries
+        venue_splits = []
+        v_agg = df_all.groupby('venue').agg(
+            matches=('match_id', 'nunique'),
             balls=('total_runs_conceded', 'count'),
             conceded=('total_runs_conceded', 'sum'),
             xrc=('exp_rpb', 'sum'),
-            wkts=('is_wicket', 'sum')
-        ).reset_index()
-        match_agg['runs_saved'] = match_agg['xrc'] - match_agg['conceded']
-        match_agg['econ'] = (match_agg['conceded'] / (match_agg['balls'].clip(lower=1) / 6.0)).round(2)
-        match_agg['par_econ'] = (match_agg['xrc'] / (match_agg['balls'].clip(lower=1) / 6.0)).round(2)
-        top_matches = match_agg[match_agg['balls'] >= 12].sort_values('runs_saved', ascending=False).head(5)
-        top_innings = []
-        for _, r in top_matches.iterrows():
-            top_innings.append({
-                'match_id': int(r['match_id']),
-                'venue': r['venue'],
-                'date': str(r['start_date'])[:10],
-                'balls': int(r['balls']),
-                'runs_conceded': int(r['conceded']),
-                'wkts': int(r['wkts']),
-                'xrc': round(float(r['xrc']), 1),
-                'runs_saved': round(float(r['runs_saved']), 1),
-                'actual_econ': float(r['econ']),
-                'par_econ': float(r['par_econ']),
-                'pitch_par': round(float(r['par_score_20']), 0),
-                'pitch_category': r['pitch_category']
+            avg_par=('par_score_20', 'mean')
+        ).reset_index().sort_values('balls', ascending=False)
+
+        for _, vr in v_agg.iterrows():
+            v_balls = int(vr['balls'])
+            if v_balls < 6:
+                continue
+            v_conceded = int(vr['conceded'])
+            v_xrc = float(vr['xrc'])
+            v_saved = round(v_xrc - v_conceded, 1)
+            venue_splits.append({
+                'venue': str(vr['venue']),
+                'matches': int(vr['matches']),
+                'balls': v_balls,
+                'runs_conceded': v_conceded,
+                'xrc': round(v_xrc, 1),
+                'runs_saved': v_saved,
+                'actual_econ': round(v_conceded / max(0.1, v_balls / 6.0), 2),
+                'expected_econ': round(v_xrc / max(0.1, v_balls / 6.0), 2),
+                'avg_par': round(float(vr['avg_par']), 0)
             })
+
+        # 3. Apply active filters
+        df = df_all.copy()
+        if pitch_category and str(pitch_category).strip().upper() != 'ALL':
+            df = df[df['pitch_category'] == str(pitch_category).strip().upper()]
+        if venue and str(venue).strip() != 'ALL':
+            v_str = str(venue).strip()
+            norm_v = normalize_venue_name(v_str)
+            df = df[(df['venue'] == v_str) | (df['venue'] == norm_v)]
+
+        total_balls = len(df)
+        if total_balls == 0:
+            overs = 0.0
+            total_conceded = 0
+            total_xrc = 0.0
+            runs_saved = 0.0
+            actual_econ = 0.0
+            expected_econ = 0.0
+            impact_ratio = 0.0
+            saved_per_match = 0.0
+            phase_splits = []
+            top_innings = []
+        else:
+            overs = round(total_balls / 6.0, 1)
+            total_conceded = int(df['total_runs_conceded'].sum())
+            total_xrc = float(df['exp_rpb'].sum())
+            runs_saved = total_xrc - total_conceded
+            actual_econ = round(total_conceded / max(0.1, total_balls / 6.0), 2)
+            expected_econ = round(total_xrc / max(0.1, total_balls / 6.0), 2)
+            impact_ratio = round(total_xrc / max(0.1, total_conceded), 2)
+            saved_per_match = round(runs_saved / max(1.0, total_balls / 24.0), 2)
+
+            phase_splits = []
+            for ph in ['Powerplay', 'Middle', 'Death']:
+                sub = df[df['phase'] == ph]
+                if len(sub) > 0:
+                    s_balls = len(sub)
+                    s_conceded = int(sub['total_runs_conceded'].sum())
+                    s_xrc = float(sub['exp_rpb'].sum())
+                    s_saved = s_xrc - s_conceded
+                    phase_splits.append({
+                        'phase': ph,
+                        'balls': s_balls,
+                        'runs_conceded': s_conceded,
+                        'xrc': round(s_xrc, 1),
+                        'runs_saved': round(s_saved, 1),
+                        'actual_econ': round(s_conceded / max(0.1, s_balls / 6.0), 2),
+                        'expected_econ': round(s_xrc / max(0.1, s_balls / 6.0), 2)
+                    })
+
+            match_agg = df.groupby(['match_id', 'venue', 'start_date', 'par_score_20', 'pitch_category']).agg(
+                balls=('total_runs_conceded', 'count'),
+                conceded=('total_runs_conceded', 'sum'),
+                xrc=('exp_rpb', 'sum'),
+                wkts=('is_wicket', 'sum')
+            ).reset_index()
+            match_agg['runs_saved'] = match_agg['xrc'] - match_agg['conceded']
+            match_agg['econ'] = (match_agg['conceded'] / (match_agg['balls'].clip(lower=1) / 6.0)).round(2)
+            match_agg['par_econ'] = (match_agg['xrc'] / (match_agg['balls'].clip(lower=1) / 6.0)).round(2)
+            top_matches = match_agg[match_agg['balls'] >= 12].sort_values('runs_saved', ascending=False).head(5)
+            top_innings = []
+            for _, r in top_matches.iterrows():
+                top_innings.append({
+                    'match_id': int(r['match_id']),
+                    'venue': r['venue'],
+                    'date': str(r['start_date'])[:10],
+                    'balls': int(r['balls']),
+                    'runs_conceded': int(r['conceded']),
+                    'wkts': int(r['wkts']),
+                    'xrc': round(float(r['xrc']), 1),
+                    'runs_saved': round(float(r['runs_saved']), 1),
+                    'actual_econ': float(r['econ']),
+                    'par_econ': float(r['par_econ']),
+                    'pitch_par': round(float(r['par_score_20']), 0),
+                    'pitch_category': r['pitch_category']
+                })
 
         return {
             'cric_name': cric_name,
             'role': 'Bowler',
             'tournament': tournament,
+            'active_pitch_category': pitch_category,
+            'active_venue': venue,
             'total_balls': total_balls,
             'overs': overs,
             'total_runs_conceded': total_conceded,
@@ -3818,6 +4177,7 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
             'impact_ratio': impact_ratio,
             'saved_per_match': saved_per_match,
             'pitch_splits': pitch_splits,
+            'venue_splits': venue_splits,
             'phase_splits': phase_splits,
             'top_innings': top_innings
         }

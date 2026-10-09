@@ -25,6 +25,7 @@ import zipfile
 import urllib.request
 import pandas as pd
 import numpy as np
+from matchup_engine import normalize_venue_name
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, 'data')
@@ -138,7 +139,7 @@ def ingest_match_csv(zf, match_id, match_meta, conn, known_archetypes):
     league_type = get_league_tier(tourn_code)
     season = match_meta['season']
     start_date = match_meta['start_date']
-    venue = match_meta['venue']
+    venue = normalize_venue_name(match_meta['venue'])
 
     # Derivations
     df['match_id'] = int(match_id)
@@ -372,7 +373,9 @@ def sync_recent_matches(days=2):
     return {
         'status': 'success',
         'new_matches': new_t20_matches,
+        'matches_added': new_t20_matches,
         'new_deliveries': total_deliveries_added,
+        'balls_added': total_deliveries_added,
         'details': added_details
     }
 

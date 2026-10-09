@@ -444,6 +444,8 @@ def player_expected_runs_api():
     name = request.args.get('name', 'Virat Kohli').strip()
     role = request.args.get('role', 'auto').strip().lower()
     tournament = request.args.get('tournament', 'ALL').strip()
+    pitch_category = request.args.get('pitch_category', 'ALL').strip()
+    venue = request.args.get('venue', 'ALL').strip()
 
     cric_name = resolve_player_name(name)
     disp_name = get_player_display_name(cric_name)
@@ -459,7 +461,7 @@ def player_expected_runs_api():
     else:
         eff_role = 'Bowler' if 'bowl' in role else 'Batter'
 
-    xr_data = get_player_expected_runs(cric_name, role=eff_role, tournament=tournament)
+    xr_data = get_player_expected_runs(cric_name, role=eff_role, tournament=tournament, pitch_category=pitch_category, venue=venue)
     if not xr_data:
         return jsonify({'error': f"Could not compute Expected Runs for '{cric_name}'."}), 404
 

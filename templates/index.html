@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap" rel="stylesheet">
   
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=3">
 </head>
 <body>
 
@@ -302,11 +302,11 @@
             <div class="header-left">
               <div>
                 <div class="title-with-badge">
-                  <h3 class="card-title" id="xrCardTitle">Expected Runs & Run Value Audit (xR)</h3>
-                  <span class="badge-tech-pill">Contextual Pitch Model</span>
+                  <h3 class="card-title" id="xrCardTitle">Expected Runs & Pitch Value Audit (xR)</h3>
+                  <span class="badge-tech-pill">Pitch Model</span>
                 </div>
                 <p class="splits-subtitle" id="xrCardSubtitle">
-                  Replaces raw strike rate with contextual run-value (e.g. 15-ball 25 on a 220 highway vs a 140 minefield)
+                  Contextual run-value benchmarked against pitch par (tough decks vs flat highways)
                 </p>
               </div>
             </div>
@@ -321,7 +321,40 @@
           </div>
 
           <div class="card-body xr-body">
-            <!-- 4-Metric Hero KPI Grid -->
+            <!-- Contextual Pitch & Stadium Audit Interactive Filter Bar -->
+            <div class="xr-controls-bar">
+              <div class="xr-filters-inline">
+                <div class="filter-group">
+                  <label for="xrPitchSelect" class="filter-label">Pitch Condition:</label>
+                  <select id="xrPitchSelect" class="custom-select filter-select">
+                    <option value="ALL">All Pitch Environments (Full Sample)</option>
+                    <option value="HARD">🛡️ Tough Minefields (Par &lt; 155)</option>
+                    <option value="BALANCED">⚖️ Balanced Decks (Par 155–184)</option>
+                    <option value="EASY">⚡ Flat Highways (Par 185+)</option>
+                  </select>
+                </div>
+
+                <div class="filter-group">
+                  <label for="xrVenueSelect" class="filter-label">Stadium / Venue:</label>
+                  <select id="xrVenueSelect" class="custom-select filter-select">
+                    <option value="ALL">All Stadiums &amp; Venues</option>
+                  </select>
+                </div>
+
+                <div class="filter-group filter-actions">
+                  <button id="xrResetFiltersBtn" class="reset-filter-btn" type="button" title="Reset to Overall Career Baseline">
+                    ↺ Reset Filters
+                  </button>
+                </div>
+              </div>
+
+              <div class="xr-filter-status-pill" id="xrFilterStatusPill">
+                <span class="pulse-dot"></span>
+                <span id="xrFilterStatusText">Overall Career Sample (All Pitches &amp; Venues)</span>
+              </div>
+            </div>
+
+            <!-- 3-Metric Clean KPI Grid -->
             <div class="xr-kpi-grid" id="xrKpiGrid">
               <!-- Rendered via JS -->
             </div>
@@ -329,49 +362,52 @@
             <!-- Broadcast Visual Scorecard (3-panel graphic) -->
             <div class="visual-canvas-card xr-visual-card" id="xrVisualCard">
               <div class="card-header xr-visual-header">
-                <h4 class="card-title" id="xrVisualTitle">Contextual Pitch Difficulty & Phase Value Scorecard</h4>
-                <span class="header-tag primary" id="xrVisualTag">Pro-Franchise Metric</span>
+                <h4 class="card-title" id="xrVisualTitle">Pitch Difficulty &amp; Phase Value Scorecard</h4>
+                <span class="header-tag primary" id="xrVisualTag">Pro Metrics</span>
               </div>
               <div class="image-viewport xr-viewport">
-                <img id="xrComparisonImg" class="broadcast-img" alt="Expected Runs & Pitch Difficulty Scorecard" src="">
+                <img id="xrComparisonImg" class="broadcast-img" alt="Expected Runs &amp; Pitch Difficulty Scorecard" src="">
               </div>
             </div>
 
             <!-- Pitch Difficulty Matrix (Hard vs Balanced vs Easy Decks) -->
             <div class="xr-matrix-section">
-              <div class="section-header-compact">
-                <h4 class="section-title">Pitch Difficulty Benchmark: Hard vs Balanced vs Easy Decks</h4>
-                <span class="section-sub">Evaluating performance across low-scoring turners, sporting decks, and flat highways</span>
+              <div class="section-header-compact" style="margin-bottom: 12px;">
+                <h4 class="section-title">Pitch Breakdown (Hard vs Balanced vs Flat)</h4>
+                <span class="section-sub">Click any pitch card below to audit stats on that pitch tier</span>
               </div>
               <div class="xr-pitch-grid" id="xrPitchGrid">
                 <!-- Rendered via JS -->
               </div>
             </div>
 
-            <!-- Top Contextual Impact Matches -->
-            <div class="xr-innings-section" id="xrInningsSection">
-              <div class="section-header-compact">
-                <h4 class="section-title" id="xrInningsTitle">Top Contextual Impact Matches</h4>
-                <span class="section-sub">Innings where the player generated the highest run-value above pitch condition expectations</span>
+            <!-- Selected Stadium Performance Spotlight -->
+            <div class="xr-venue-spotlight-section" id="xrVenueSpotlightSection">
+              <!-- When a specific stadium is selected from dropdown, display its focused audit card -->
+              <div class="venue-spotlight-card" id="xrSelectedVenueCard" style="display: none;">
+                <div class="venue-spotlight-header">
+                  <div class="venue-title-wrap">
+                    <span class="venue-icon">🏟️</span>
+                    <div>
+                      <h4 class="venue-name" id="spotlightVenueName">M Chinnaswamy Stadium, Bengaluru</h4>
+                      <span class="venue-tag" id="spotlightVenueTag">Filtered Venue Split</span>
+                    </div>
+                  </div>
+                  <button class="clear-venue-btn" id="spotlightClearVenueBtn" type="button" title="Reset back to all grounds">
+                    ✕ Reset to All Grounds
+                  </button>
+                </div>
+                <div class="venue-spotlight-metrics" id="spotlightVenueMetrics">
+                  <!-- Populated dynamically via JS -->
+                </div>
               </div>
-              <div class="table-responsive">
-                <table class="data-table" id="xrInningsTable">
-                  <thead>
-                    <tr>
-                      <th>Date & Match</th>
-                      <th>Venue</th>
-                      <th>Pitch Par</th>
-                      <th>Difficulty</th>
-                      <th id="thXrInningsScore">Score</th>
-                      <th id="thXrInningsExpected">Expected (xR)</th>
-                      <th id="thXrInningsValue">Net Run Value</th>
-                      <th id="thXrInningsSR">Strike Rate vs Par</th>
-                    </tr>
-                  </thead>
-                  <tbody id="xrInningsTableBody">
-                    <!-- Rendered via JS -->
-                  </tbody>
-                </table>
+
+              <!-- When All Grounds is active, show a clean, compact guidance note instead of a massive table -->
+              <div class="venue-guidance-notice" id="xrVenueGuidanceNotice">
+                <div class="guidance-icon">🏟️</div>
+                <div class="guidance-text">
+                  <strong>Career Grounds Baseline Active:</strong> Showing player performance across all worldwide stadiums combined. To inspect venue-specific xR split, balls faced, and net run value, select any stadium from the <em>Stadium / Venue</em> dropdown above.
+                </div>
               </div>
             </div>
 
@@ -397,16 +433,6 @@
               <h3 class="card-title" id="antagonistCardTitle">Primary Kryptonite & Top 3 Nemeses</h3>
             </div>
             <div class="card-body" id="antagonistBody">
-              <!-- Rendered via JS -->
-            </div>
-          </div>
-
-          <!-- Column 3: Domestic Moneyball Alternatives -->
-          <div class="tactical-card">
-            <div class="card-header">
-              <h3 class="card-title" id="moneyballCardTitle">Domestic Tactical Alternatives (SMAT)</h3>
-            </div>
-            <div class="card-body" id="moneyballBody">
               <!-- Rendered via JS -->
             </div>
           </div>
@@ -573,21 +599,25 @@
             </div>
             <div class="card-body">
               <div class="wagon-quick-stats">
-                <div class="stat-pill"><span class="k">Runs Conceded:</span> <strong id="defStatRuns">--</strong></div>
-                <div class="stat-pill"><span class="k">Wickets:</span> <strong id="defStatWkts">--</strong></div>
-                <div class="stat-pill"><span class="k">Economy:</span> <strong id="defStatEcon">--</strong></div>
-                <div class="stat-pill"><span class="k">Strike Rate:</span> <strong id="defStatSR">--</strong></div>
+                <div class="stat-pill"><span class="stat-pill-icon">🏏</span><span class="k">Runs Conceded:</span> <strong id="defStatRuns">--</strong></div>
+                <div class="stat-pill"><span class="stat-pill-icon">🎯</span><span class="k">Wickets:</span> <strong id="defStatWkts">--</strong></div>
+                <div class="stat-pill"><span class="stat-pill-icon">📉</span><span class="k">Economy:</span> <strong id="defStatEcon">--</strong></div>
+                <div class="stat-pill"><span class="stat-pill-icon">⏱️</span><span class="k">Strike Rate:</span> <strong id="defStatSR">--</strong></div>
               </div>
 
               <!-- Sector Insight Cards -->
               <div class="def-insight-row">
                 <div class="insight-badge-box fortress">
-                  <div class="insight-label">PRIMARY RESTRICTIVE SECTOR</div>
+                  <div class="insight-badge-header">
+                    <span class="insight-badge-tag fortress-tag">🛡️ PRIMARY RESTRICTIVE FORTRESS</span>
+                  </div>
                   <div class="insight-title" id="defFortressName">Long Off</div>
                   <div class="insight-meta" id="defFortressDetail">Only 7.0% conceded • 21 Wickets Induced</div>
                 </div>
                 <div class="insight-badge-box leak">
-                  <div class="insight-label">HIGH-CONCESSION SECTOR</div>
+                  <div class="insight-badge-header">
+                    <span class="insight-badge-tag leak-tag">⚡ HIGH-CONCESSION VULNERABILITY</span>
+                  </div>
                   <div class="insight-title" id="defLeakName">Cover</div>
                   <div class="insight-meta" id="defLeakDetail">17.7% conceded • Opponents hit 549r</div>
                 </div>
@@ -618,42 +648,70 @@
       <!-- TAB 4: HEAD-TO-HEAD DUEL & COMPARE -->
       <!-- ================================================================= -->
       <section id="tab-compare" class="tab-pane">
-        <!-- Dual Input Card -->
-        <div class="compare-search-card">
-          <div class="compare-input-pair">
-            <div class="compare-field">
-              <label for="compPlayer1Input">Player 1 (Batter or Bowler):</label>
-              <input type="text" id="compPlayer1Input" class="search-input" value="Virat Kohli" autocomplete="off">
+        <!-- Athletic Head-to-Head Duel Cockpit -->
+        <div class="compare-cockpit-card">
+          <div class="cockpit-top-banner">
+            <div class="cockpit-title-group">
+              <span class="cockpit-kicker">⚔️ TACTICAL MATCHUP ENGINE</span>
+              <h3 class="cockpit-heading">Head-to-Head Duel &amp; Side-by-Side Audit</h3>
             </div>
-            
-            <div class="vs-badge-circle">VS</div>
-            
-            <div class="compare-field">
-              <label for="compPlayer2Input">Player 2 (Batter or Bowler):</label>
-              <input type="text" id="compPlayer2Input" class="search-input" value="Sandeep Sharma" autocomplete="off">
+            <div class="cockpit-badge">2.67M Ball Database Verified</div>
+          </div>
+
+          <div class="cockpit-grid">
+            <!-- Player 1 Slot -->
+            <div class="cockpit-player-slot p1-slot">
+              <div class="player-slot-label">
+                <span class="slot-tag p1-tag">PLAYER 1</span>
+                <span class="slot-role-hint" id="p1RoleHint">Batter or Bowler</span>
+              </div>
+              <div class="cockpit-input-wrap">
+                <span class="cockpit-input-icon">🏏</span>
+                <input type="text" id="compPlayer1Input" class="cockpit-search-input" value="Virat Kohli" placeholder="Search Player 1..." autocomplete="off">
+              </div>
             </div>
-            
-            <button class="action-btn primary" id="launchCompareBtn">Compare Players</button>
+
+            <!-- VS Center Emblem & Action Button -->
+            <div class="cockpit-vs-center">
+              <div class="vs-emblem-badge">
+                <span class="vs-text">VS</span>
+              </div>
+              <button class="cockpit-duel-btn" id="launchCompareBtn" type="button">
+                <span>⚔️ Run Matchup</span>
+              </button>
+            </div>
+
+            <!-- Player 2 Slot -->
+            <div class="cockpit-player-slot p2-slot">
+              <div class="player-slot-label">
+                <span class="slot-tag p2-tag">PLAYER 2</span>
+                <span class="slot-role-hint" id="p2RoleHint">Batter or Bowler</span>
+              </div>
+              <div class="cockpit-input-wrap">
+                <span class="cockpit-input-icon">🎯</span>
+                <input type="text" id="compPlayer2Input" class="cockpit-search-input" value="Sandeep Sharma" placeholder="Search Player 2..." autocomplete="off">
+              </div>
+            </div>
           </div>
 
           <!-- Compact Comparison Controls Toolbar -->
-          <div class="compare-controls-bar">
+          <div class="cockpit-controls-bar">
             <!-- Discipline Dropdown -->
-            <div class="filter-group">
-              <label for="compareModeSelect" class="filter-label">Comparison Discipline:</label>
-              <select id="compareModeSelect" class="custom-select filter-select">
-                <option value="auto">Auto-Detect Roles</option>
-                <option value="bat_vs_bat">Batter vs Batter (Both Batting)</option>
-                <option value="bowl_vs_bowl">Bowler vs Bowler (Both Bowling)</option>
-                <option value="bat_vs_bowl" id="optBatBowl">Player 1 (Bat) vs Player 2 (Bowl)</option>
-                <option value="bowl_vs_bat" id="optBowlBat">Player 1 (Bowl) vs Player 2 (Bat)</option>
+            <div class="cockpit-control-group">
+              <label for="compareModeSelect" class="control-label">Matchup Discipline:</label>
+              <select id="compareModeSelect" class="cockpit-select">
+                <option value="auto">⚡ Auto-Detect Roles (Batter vs Bowler / H2H)</option>
+                <option value="bat_vs_bat">🏏 Batter vs Batter (Both Batting)</option>
+                <option value="bowl_vs_bowl">🎯 Bowler vs Bowler (Both Bowling)</option>
+                <option value="bat_vs_bowl" id="optBatBowl">⚔️ Player 1 (Bat) vs Player 2 (Bowl)</option>
+                <option value="bowl_vs_bat" id="optBowlBat">⚔️ Player 1 (Bowl) vs Player 2 (Bat)</option>
               </select>
             </div>
 
             <!-- Bowler Archetype Dropdown (only visible for Batter vs Batter) -->
-            <div class="filter-group" id="compareArchetypeWrap" style="display: none;">
-              <label for="compareArchetypeSelect" class="filter-label">vs Bowler Archetype:</label>
-              <select id="compareArchetypeSelect" class="custom-select filter-select">
+            <div class="cockpit-control-group" id="compareArchetypeWrap" style="display: none;">
+              <label for="compareArchetypeSelect" class="control-label">vs Bowler Archetype:</label>
+              <select id="compareArchetypeSelect" class="cockpit-select">
                 <option value="ALL">All Bowler Types</option>
                 <option value="PACE">All Pace (LAF+RAF+LAM+RAM)</option>
                 <option value="SPIN">All Spin (SLA+Off+Wrist)</option>
@@ -668,9 +726,9 @@
             </div>
 
             <!-- Batter Stance Dropdown (only visible for Bowler vs Bowler) -->
-            <div class="filter-group" id="compareHandWrap" style="display: none;">
-              <label for="compareHandSelect" class="filter-label">vs Batter Stance:</label>
-              <select id="compareHandSelect" class="custom-select filter-select">
+            <div class="cockpit-control-group" id="compareHandWrap" style="display: none;">
+              <label for="compareHandSelect" class="control-label">vs Batter Stance:</label>
+              <select id="compareHandSelect" class="cockpit-select">
                 <option value="ALL">All Batters</option>
                 <option value="RHB">vs Right-Hand Bat (RHB)</option>
                 <option value="LHB">vs Left-Hand Bat (LHB)</option>
@@ -678,16 +736,16 @@
             </div>
 
             <!-- Quick Duel Presets Dropdown -->
-            <div class="filter-group">
-              <label for="comparePresetSelect" class="filter-label">Quick Duel Presets:</label>
-              <select id="comparePresetSelect" class="custom-select filter-select">
-                <option value="">Load Preset Matchup...</option>
+            <div class="cockpit-control-group">
+              <label for="comparePresetSelect" class="control-label">Quick Duel Presets:</label>
+              <select id="comparePresetSelect" class="cockpit-select">
+                <option value="">⚡ Load Preset Matchup...</option>
+                <option value="kohli_sandeep" data-p1="Virat Kohli" data-p2="Sandeep Sharma" data-mode="bat_vs_bowl">Kohli vs Sandeep Sharma (Head-to-Head Duel)</option>
                 <option value="kohli_gill_raf" data-p1="Virat Kohli" data-p2="Shubman Gill" data-mode="bat_vs_bat" data-archetype="RAF">Kohli vs Gill (vs Right-Arm Fast)</option>
                 <option value="kohli_gill_laf" data-p1="Virat Kohli" data-p2="Shubman Gill" data-mode="bat_vs_bat" data-archetype="LAF">Kohli vs Gill (vs Left-Arm Fast)</option>
                 <option value="kohli_rohit" data-p1="Virat Kohli" data-p2="Rohit Sharma" data-mode="bat_vs_bat" data-archetype="ALL">Kohli vs Rohit (Batter Benchmark)</option>
                 <option value="bumrah_rashid_all" data-p1="Jasprit Bumrah" data-p2="Rashid Khan" data-mode="bowl_vs_bowl" data-hand="ALL">Bumrah vs Rashid (All Batters)</option>
                 <option value="bumrah_rashid_lhb" data-p1="Jasprit Bumrah" data-p2="Rashid Khan" data-mode="bowl_vs_bowl" data-hand="LHB">Bumrah vs Rashid (vs LHB)</option>
-                <option value="kohli_sandeep" data-p1="Virat Kohli" data-p2="Sandeep Sharma" data-mode="bat_vs_bowl">Kohli vs Sandeep Sharma (Head-to-Head Duel)</option>
                 <option value="pooran_hasaranga" data-p1="Nicholas Pooran" data-p2="Wanindu Hasaranga" data-mode="bat_vs_bowl">Pooran vs Hasaranga (Wrist Spin Matchup)</option>
                 <option value="russell_klaasen" data-p1="Andre Russell" data-p2="Heinrich Klaasen" data-mode="bat_vs_bat" data-archetype="ALL">Russell vs Klaasen (Finisher Comparison)</option>
               </select>
@@ -756,29 +814,6 @@
               <!-- Rendered via JS: 3 Cards for PP, Middle, Death -->
             </div>
           </div>
-
-          <!-- Contextual Expected Runs & Pitch Comparison Section -->
-          <div class="compare-xr-section" id="compareXrSection">
-            <div class="section-header-compact">
-              <h4 class="section-title">Contextual Expected Runs & Pitch Difficulty Audit</h4>
-              <span class="section-sub">Who delivers higher run value when the pitch is tough (&lt;155 par) vs batting highways (185+ par)?</span>
-            </div>
-            <div class="table-responsive">
-              <table class="data-table compare-metrics-table" id="compareXrTable">
-                <thead>
-                  <tr>
-                    <th style="width: 32%;">Pitch Environment</th>
-                    <th style="width: 26%;" id="thCompXrPlayer1">Player 1</th>
-                    <th style="width: 26%;" id="thCompXrPlayer2">Player 2</th>
-                    <th style="width: 16%;">Pitch Advantage</th>
-                  </tr>
-                </thead>
-                <tbody id="compareXrBody">
-                  <!-- Rendered via JS -->
-                </tbody>
-              </table>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -818,6 +853,6 @@
     </div>
   </footer>
 
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/app.js?v=3"></script>
 </body>
 </html>
