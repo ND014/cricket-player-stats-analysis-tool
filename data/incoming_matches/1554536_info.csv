@@ -1,0 +1,76 @@
+version,2.4.0
+info,balls_per_over,6
+info,team,Thailand
+info,team,Qatar
+info,gender,male
+info,team_type,international
+info,season,2026/27
+info,date,2026/10/06
+info,match_id,1554536
+info,match_type,T20
+info,match_type_number,4163
+info,overs,20
+info,event,ICC Men's T20 World Cup Sub Regional Asia Qualifier A
+info,match_number,4
+info,venue,"Bayuemas Oval, Kuala Lumpur"
+info,city,Kuala Lumpur
+info,toss_winner,Qatar
+info,toss_decision,field
+info,player_of_match,Zeeshan Haider
+info,umpire,Aasif Iqbal
+info,umpire,DN Subedi
+info,reserve_umpire,Morshed Ali Khan
+info,match_referee,Neeyamur Rashid
+info,target_overs,2,20
+info,target_runs,2,77
+info,winner,Qatar
+info,winner_wickets,7
+info,player,Thailand,AP Yadav
+info,player,Thailand,C Chatphaisan
+info,player,Thailand,P Suanchuai
+info,player,Thailand,AV Lazarus
+info,player,Thailand,P Thongsa
+info,player,Thailand,MK Thakur
+info,player,Thailand,P Jirapatananukul
+info,player,Thailand,C Pengkumta
+info,player,Thailand,A Wichakam
+info,player,Thailand,N Senamontree
+info,player,Thailand,Sarawut Maliwan
+info,player,Qatar,Zubair Ali
+info,player,Qatar,Zeeshan Haider
+info,player,Qatar,I Liyanage
+info,player,Qatar,MM Baig
+info,player,Qatar,Muhammad Asim
+info,player,Qatar,Shariq Munir
+info,player,Qatar,Shahzaib Jamil
+info,player,Qatar,Ikramullah Khan
+info,player,Qatar,Mujeeb-ur-Rehman
+info,player,Qatar,DAM Louis
+info,player,Qatar,Owais Ahmed
+info,registry,people,A Wichakam,c9835e0a
+info,registry,people,AP Yadav,a5501504
+info,registry,people,AV Lazarus,30c917bf
+info,registry,people,Aasif Iqbal,42c41e1a
+info,registry,people,C Chatphaisan,85c56be8
+info,registry,people,C Pengkumta,b3540b2a
+info,registry,people,DAM Louis,b975210d
+info,registry,people,DN Subedi,fb0a571f
+info,registry,people,I Liyanage,826e1017
+info,registry,people,Ikramullah Khan,c6e1354c
+info,registry,people,MK Thakur,2d9451cc
+info,registry,people,MM Baig,add288ea
+info,registry,people,Morshed Ali Khan,a7c3cf5f
+info,registry,people,Muhammad Asim,b424d3d3
+info,registry,people,Mujeeb-ur-Rehman,1a8f879b
+info,registry,people,N Senamontree,44e00a4c
+info,registry,people,Neeyamur Rashid,bd81a027
+info,registry,people,Owais Ahmed,cef52835
+info,registry,people,P Jirapatananukul,f52961ea
+info,registry,people,P Suanchuai,e6948355
+info,registry,people,P Thongsa,62318525
+info,registry,people,Sarawut Maliwan,36a0a88c
+info,registry,people,Shahzaib Jamil,fbb6d1a7
+info,registry,people,Shariq Munir,298d9b83
+info,registry,people,Zeeshan Haider,e4d76518
+info,registry,people,Zubair Ali,f16e776a
+info,registry,venues,"Bayuemas Oval, Kuala Lumpur",8755e10d

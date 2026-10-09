@@ -1,0 +1,76 @@
+version,2.4.0
+info,balls_per_over,6
+info,team,Kuwait
+info,team,Qatar
+info,gender,male
+info,team_type,international
+info,season,2026/27
+info,date,2026/10/05
+info,match_id,1554535
+info,match_type,T20
+info,match_type_number,4162
+info,overs,20
+info,event,ICC Men's T20 World Cup Sub Regional Asia Qualifier A
+info,match_number,3
+info,venue,"Bayuemas Oval, Kuala Lumpur"
+info,city,Kuala Lumpur
+info,toss_winner,Qatar
+info,toss_decision,field
+info,player_of_match,Adnan Idrees
+info,umpire,Morshed Ali Khan
+info,umpire,Ramasamy Venkatesh
+info,reserve_umpire,Tabarak Dar
+info,match_referee,Neeyamur Rashid
+info,target_overs,2,20
+info,target_runs,2,200
+info,winner,Kuwait
+info,winner_runs,58
+info,player,Kuwait,Adnan Idrees
+info,player,Kuwait,R Sandaruwan
+info,player,Kuwait,CV Anto
+info,player,Kuwait,Meet Bhavsar
+info,player,Kuwait,Muhammad Umar
+info,player,Kuwait,Ali Zaheer
+info,player,Kuwait,Bilal Tahir
+info,player,Kuwait,MNM Aslam
+info,player,Kuwait,Yasin Patel
+info,player,Kuwait,Mohamed Shafeeq
+info,player,Kuwait,Shahrukh Quddus
+info,player,Qatar,Zubair Ali
+info,player,Qatar,Zeeshan Haider
+info,player,Qatar,I Liyanage
+info,player,Qatar,MM Baig
+info,player,Qatar,Muhammad Asim
+info,player,Qatar,Shahzaib Jamil
+info,player,Qatar,Shahzeb Afridi
+info,player,Qatar,Shariq Munir
+info,player,Qatar,DAM Louis
+info,player,Qatar,Owais Ahmed
+info,player,Qatar,Obaid ur Rahman
+info,registry,people,Adnan Idrees,0e34c23a
+info,registry,people,Ali Zaheer,04ed04d2
+info,registry,people,Bilal Tahir,3cf06094
+info,registry,people,CV Anto,c01ca5af
+info,registry,people,DAM Louis,b975210d
+info,registry,people,I Liyanage,826e1017
+info,registry,people,MM Baig,add288ea
+info,registry,people,MNM Aslam,20481563
+info,registry,people,Meet Bhavsar,b25a3800
+info,registry,people,Mohamed Shafeeq,ff13b10c
+info,registry,people,Morshed Ali Khan,a7c3cf5f
+info,registry,people,Muhammad Asim,b424d3d3
+info,registry,people,Muhammad Umar,0abc33ff
+info,registry,people,Neeyamur Rashid,bd81a027
+info,registry,people,Obaid ur Rahman,2cc6811b
+info,registry,people,Owais Ahmed,cef52835
+info,registry,people,R Sandaruwan,cf6acc0d
+info,registry,people,Ramasamy Venkatesh,8ad68ea7
+info,registry,people,Shahrukh Quddus,a80cc0cc
+info,registry,people,Shahzaib Jamil,fbb6d1a7
+info,registry,people,Shahzeb Afridi,53494306
+info,registry,people,Shariq Munir,298d9b83
+info,registry,people,Tabarak Dar,2259c12d
+info,registry,people,Yasin Patel,ecdd8d60
+info,registry,people,Zeeshan Haider,e4d76518
+info,registry,people,Zubair Ali,f16e776a
+info,registry,venues,"Bayuemas Oval, Kuala Lumpur",8755e10d

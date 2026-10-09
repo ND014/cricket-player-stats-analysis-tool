@@ -1,0 +1,76 @@
+version,2.4.0
+info,balls_per_over,6
+info,team,Bangladesh
+info,team,Pakistan
+info,gender,male
+info,team_type,international
+info,season,2026
+info,date,2026/10/01
+info,match_id,1552776
+info,match_type,T20
+info,match_type_number,4152
+info,overs,20
+info,event,Asian Games Men's Cricket Competition
+info,venue,Korogi Sports Park
+info,city,Nisshin
+info,toss_winner,Pakistan
+info,toss_decision,field
+info,umpire,Nitin Menon
+info,umpire,RMPJ Rambukwella
+info,reserve_umpire,Farooq Khan
+info,tv_umpire,V Kalidas
+info,match_referee,V Narayan Kutty
+info,target_overs,2,13
+info,target_runs,2,112
+info,winner,Pakistan
+info,winner_wickets,6
+info,player,Bangladesh,Saif Hassan
+info,player,Bangladesh,Tanzid Hasan
+info,player,Bangladesh,Liton Das
+info,player,Bangladesh,Parvez Hossain Emon
+info,player,Bangladesh,Towhid Hridoy
+info,player,Bangladesh,Mosaddek Hossain
+info,player,Bangladesh,Rishad Hossain
+info,player,Bangladesh,Mahedi Hasan
+info,player,Bangladesh,Nasum Ahmed
+info,player,Bangladesh,Mustafizur Rahman
+info,player,Bangladesh,Shoriful Islam
+info,player,Pakistan,Sahibzada Farhan
+info,player,Pakistan,Maaz Sadaqat
+info,player,Pakistan,Usman Khan
+info,player,Pakistan,Saim Ayub
+info,player,Pakistan,Hassan Nawaz
+info,player,Pakistan,Abdul Samad
+info,player,Pakistan,Arafat Minhas
+info,player,Pakistan,Ahmed Daniyal
+info,player,Pakistan,Mohammad Wasim
+info,player,Pakistan,Sufiyan Muqeem
+info,player,Pakistan,Abrar Ahmed
+info,registry,people,Abdul Samad,8e554b6b
+info,registry,people,Abrar Ahmed,abb7c76c
+info,registry,people,Ahmed Daniyal,9656afbf
+info,registry,people,Arafat Minhas,f2e8b37c
+info,registry,people,Farooq Khan,c1d0caa5
+info,registry,people,Hassan Nawaz,26a8b2fe
+info,registry,people,Liton Das,0404d43c
+info,registry,people,Maaz Sadaqat,6d9560f3
+info,registry,people,Mahedi Hasan,9dad0f2e
+info,registry,people,Mohammad Wasim,9e9af5f2
+info,registry,people,Mosaddek Hossain,8919756f
+info,registry,people,Mustafizur Rahman,0a8fce53
+info,registry,people,Nasum Ahmed,37654b75
+info,registry,people,Nitin Menon,e1d41d9e
+info,registry,people,Parvez Hossain Emon,489aaf0a
+info,registry,people,RMPJ Rambukwella,13fa6ffc
+info,registry,people,Rishad Hossain,5935d694
+info,registry,people,Sahibzada Farhan,1aba45cd
+info,registry,people,Saif Hassan,bb95564b
+info,registry,people,Saim Ayub,33609a8c
+info,registry,people,Shoriful Islam,bb34fd31
+info,registry,people,Sufiyan Muqeem,4277234d
+info,registry,people,Tanzid Hasan,80fe764d
+info,registry,people,Towhid Hridoy,9e52a414
+info,registry,people,Usman Khan,bafb9238
+info,registry,people,V Kalidas,42d76418
+info,registry,people,V Narayan Kutty,4bacee3d
+info,registry,venues,Korogi Sports Park,bef5bb0f

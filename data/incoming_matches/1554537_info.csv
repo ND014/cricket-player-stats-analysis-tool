@@ -1,0 +1,76 @@
+version,2.4.0
+info,balls_per_over,6
+info,team,Bahrain
+info,team,Bhutan
+info,gender,male
+info,team_type,international
+info,season,2026/27
+info,date,2026/10/06
+info,match_id,1554537
+info,match_type,T20
+info,match_type_number,4164
+info,overs,20
+info,event,ICC Men's T20 World Cup Sub Regional Asia Qualifier A
+info,match_number,5
+info,venue,"Bayuemas Oval, Kuala Lumpur"
+info,city,Kuala Lumpur
+info,toss_winner,Bahrain
+info,toss_decision,bat
+info,player_of_match,Ali Dawood
+info,umpire,Morshed Ali Khan
+info,umpire,V Kalidas
+info,reserve_umpire,N Sivan
+info,match_referee,Neeyamur Rashid
+info,target_overs,2,20
+info,target_runs,2,140
+info,winner,Bahrain
+info,winner_runs,66
+info,player,Bahrain,Asif Ali
+info,player,Bahrain,P Kurup
+info,player,Bahrain,Fiaz Ahmed
+info,player,Bahrain,Junaid Aziz
+info,player,Bahrain,Imran Anwar
+info,player,Bahrain,Ahmer Bin Nisar
+info,player,Bahrain,Asif Javed
+info,player,Bahrain,Abdul Majid
+info,player,Bahrain,Ali Dawood
+info,player,Bahrain,Imran Khan
+info,player,Bahrain,Shujaat Rasool
+info,player,Bhutan,S Chophel
+info,player,Bhutan,Tenjin Rabgey
+info,player,Bhutan,Tshering Tashi
+info,player,Bhutan,RM Dorji
+info,player,Bhutan,N Chejay
+info,player,Bhutan,T Jamtsho
+info,player,Bhutan,Tashi Phuntsho
+info,player,Bhutan,GK Ghalley
+info,player,Bhutan,A Mongar
+info,player,Bhutan,K Dorji
+info,player,Bhutan,S Yeshi
+info,registry,people,A Mongar,940255af
+info,registry,people,Abdul Majid,384cebed
+info,registry,people,Ahmer Bin Nisar,afbc53ba
+info,registry,people,Ali Dawood,596982e6
+info,registry,people,Asif Ali,0a4736eb
+info,registry,people,Asif Javed,6e397f37
+info,registry,people,Fiaz Ahmed,df1f2f29
+info,registry,people,GK Ghalley,2d1b6dee
+info,registry,people,Imran Anwar,a9a18e3e
+info,registry,people,Imran Khan,da3b91fd
+info,registry,people,Junaid Aziz,c39ee9e0
+info,registry,people,K Dorji,f9b9883f
+info,registry,people,Morshed Ali Khan,a7c3cf5f
+info,registry,people,N Chejay,a9e63549
+info,registry,people,N Sivan,8f4a0102
+info,registry,people,Neeyamur Rashid,bd81a027
+info,registry,people,P Kurup,50ceaef6
+info,registry,people,RM Dorji,3d7f02d4
+info,registry,people,S Chophel,45f4af74
+info,registry,people,S Yeshi,0c24fb7b
+info,registry,people,Shujaat Rasool,2dd90a40
+info,registry,people,T Jamtsho,c01d1c0a
+info,registry,people,Tashi Phuntsho,43d365ca
+info,registry,people,Tenjin Rabgey,1fed517a
+info,registry,people,Tshering Tashi,596c60cf
+info,registry,people,V Kalidas,42d76418
+info,registry,venues,"Bayuemas Oval, Kuala Lumpur",8755e10d

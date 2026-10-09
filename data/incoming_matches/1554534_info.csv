@@ -1,0 +1,76 @@
+version,2.4.0
+info,balls_per_over,6
+info,team,Bahrain
+info,team,Thailand
+info,gender,male
+info,team_type,international
+info,season,2026/27
+info,date,2026/10/05
+info,match_id,1554534
+info,match_type,T20
+info,match_type_number,4160
+info,overs,20
+info,event,ICC Men's T20 World Cup Sub Regional Asia Qualifier A
+info,match_number,2
+info,venue,"YSD-UKM Cricket Oval, Bangi"
+info,city,Bangi
+info,toss_winner,Thailand
+info,toss_decision,field
+info,player_of_match,Asif Javed
+info,umpire,N Sivan
+info,umpire,V Kalidas
+info,reserve_umpire,BB Pradhan
+info,match_referee,V Narayan Kutty
+info,target_overs,2,20
+info,target_runs,2,105
+info,winner,Bahrain
+info,winner_runs,7
+info,player,Bahrain,Asif Ali
+info,player,Bahrain,P Kurup
+info,player,Bahrain,Fiaz Ahmed
+info,player,Bahrain,Junaid Aziz
+info,player,Bahrain,Ahmer Bin Nisar
+info,player,Bahrain,Asif Javed
+info,player,Bahrain,Imran Anwar
+info,player,Bahrain,Shujaat Rasool
+info,player,Bahrain,Abdul Majid Abbasi
+info,player,Bahrain,Ali Dawood
+info,player,Bahrain,Rizwan Butt
+info,player,Thailand,AP Yadav
+info,player,Thailand,C Chatphaisan
+info,player,Thailand,P Suanchuai
+info,player,Thailand,AV Lazarus
+info,player,Thailand,P Thongsa
+info,player,Thailand,MK Thakur
+info,player,Thailand,P Jirapatananukul
+info,player,Thailand,C Pengkumta
+info,player,Thailand,P Donkaew
+info,player,Thailand,A Wichakam
+info,player,Thailand,N Senamontree
+info,registry,people,A Wichakam,c9835e0a
+info,registry,people,AP Yadav,a5501504
+info,registry,people,AV Lazarus,30c917bf
+info,registry,people,Abdul Majid Abbasi,0cfb42b5
+info,registry,people,Ahmer Bin Nisar,afbc53ba
+info,registry,people,Ali Dawood,596982e6
+info,registry,people,Asif Ali,0a4736eb
+info,registry,people,Asif Javed,6e397f37
+info,registry,people,BB Pradhan,8603d942
+info,registry,people,C Chatphaisan,85c56be8
+info,registry,people,C Pengkumta,b3540b2a
+info,registry,people,Fiaz Ahmed,df1f2f29
+info,registry,people,Imran Anwar,a9a18e3e
+info,registry,people,Junaid Aziz,c39ee9e0
+info,registry,people,MK Thakur,2d9451cc
+info,registry,people,N Senamontree,44e00a4c
+info,registry,people,N Sivan,8f4a0102
+info,registry,people,P Donkaew,0f61aa94
+info,registry,people,P Jirapatananukul,f52961ea
+info,registry,people,P Kurup,50ceaef6
+info,registry,people,P Suanchuai,e6948355
+info,registry,people,P Thongsa,62318525
+info,registry,people,Rizwan Butt,e741ed8f
+info,registry,people,Shujaat Rasool,2dd90a40
+info,registry,people,V Kalidas,42d76418
+info,registry,people,V Narayan Kutty,4bacee3d
+info,registry,venues,"YSD-UKM Cricket Oval, Bangi",e74170c2

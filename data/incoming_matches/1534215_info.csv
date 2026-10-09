@@ -1,0 +1,76 @@
+version,2.4.0
+info,balls_per_over,6
+info,team,Guyana Amazon Warriors
+info,team,Antigua and Barbuda Falcons
+info,gender,male
+info,team_type,club
+info,season,2026
+info,date,2026/09/17
+info,match_id,1534215
+info,match_type,T20
+info,overs,20
+info,event,Caribbean Premier League
+info,venue,Kensington Oval
+info,city,Bridgetown
+info,toss_winner,Antigua and Barbuda Falcons
+info,toss_decision,field
+info,player_of_match,Shadab Khan
+info,umpire,GO Brathwaite
+info,umpire,LS Reifer
+info,reserve_umpire,DK Butler
+info,tv_umpire,Christopher Taylor
+info,match_referee,Reon King
+info,target_overs,2,20
+info,target_runs,2,77
+info,winner,Antigua and Barbuda Falcons
+info,winner_wickets,9
+info,player,Guyana Amazon Warriors,GD Phillips
+info,player,Guyana Amazon Warriors,M Dindyal
+info,player,Guyana Amazon Warriors,SD Hope
+info,player,Guyana Amazon Warriors,Mohammad Haris
+info,player,Guyana Amazon Warriors,SO Hetmyer
+info,player,Guyana Amazon Warriors,Mehedi Hasan Miraz
+info,player,Guyana Amazon Warriors,Q Sampson
+info,player,Guyana Amazon Warriors,K Pierre
+info,player,Guyana Amazon Warriors,Imran Tahir
+info,player,Guyana Amazon Warriors,R Shepherd
+info,player,Guyana Amazon Warriors,S Joseph
+info,player,Antigua and Barbuda Falcons,RRS Cornwall
+info,player,Antigua and Barbuda Falcons,E Lewis
+info,player,Antigua and Barbuda Falcons,AA Jangoo
+info,player,Antigua and Barbuda Falcons,Hassan Nawaz
+info,player,Antigua and Barbuda Falcons,MM Ali
+info,player,Antigua and Barbuda Falcons,Shadab Khan
+info,player,Antigua and Barbuda Falcons,FA Allen
+info,player,Antigua and Barbuda Falcons,JM James
+info,player,Antigua and Barbuda Falcons,Sufiyan Muqeem
+info,player,Antigua and Barbuda Falcons,AS Joseph
+info,player,Antigua and Barbuda Falcons,SK Springer
+info,registry,people,AA Jangoo,88626ed2
+info,registry,people,AS Joseph,b0946605
+info,registry,people,Christopher Taylor,1f50a44a
+info,registry,people,DK Butler,671398e3
+info,registry,people,E Lewis,0ebfb1ad
+info,registry,people,FA Allen,b52ffbbd
+info,registry,people,GD Phillips,9a46c4e5
+info,registry,people,GO Brathwaite,1ace56d4
+info,registry,people,Hassan Nawaz,26a8b2fe
+info,registry,people,Imran Tahir,acee4cc4
+info,registry,people,JM James,24f6e254
+info,registry,people,K Pierre,a61bcb94
+info,registry,people,LS Reifer,5dee559a
+info,registry,people,M Dindyal,b76a2178
+info,registry,people,MM Ali,bb351c23
+info,registry,people,Mehedi Hasan Miraz,c58b0108
+info,registry,people,Mohammad Haris,ff3f6fc1
+info,registry,people,Q Sampson,238ce998
+info,registry,people,R Shepherd,c5aef772
+info,registry,people,RRS Cornwall,c4d9634c
+info,registry,people,Reon King,20fbf68c
+info,registry,people,S Joseph,97290faf
+info,registry,people,SD Hope,1fc6ef83
+info,registry,people,SK Springer,4175d211
+info,registry,people,SO Hetmyer,48a1d7b7
+info,registry,people,Shadab Khan,9de62878
+info,registry,people,Sufiyan Muqeem,4277234d
+info,registry,venues,Kensington Oval,d2a4ff70

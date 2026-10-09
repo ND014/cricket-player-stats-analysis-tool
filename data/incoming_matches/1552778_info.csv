@@ -1,0 +1,76 @@
+version,2.4.0
+info,balls_per_over,6
+info,team,Sri Lanka
+info,team,Bangladesh
+info,gender,male
+info,team_type,international
+info,season,2026
+info,date,2026/10/03
+info,match_id,1552778
+info,match_type,T20
+info,match_type_number,4154
+info,overs,20
+info,event,Asian Games Men's Cricket Competition
+info,venue,Korogi Sports Park
+info,city,Nisshin
+info,toss_winner,Sri Lanka
+info,toss_decision,bat
+info,umpire,Faisal Afridi
+info,umpire,Nitin Menon
+info,reserve_umpire,Farooq Khan
+info,tv_umpire,V Kalidas
+info,match_referee,Kamran Chaudary
+info,target_overs,2,20
+info,target_runs,2,166
+info,winner,Sri Lanka
+info,winner_runs,63
+info,player,Sri Lanka,L Croospulle
+info,player,Sri Lanka,Sineth Jayawardena
+info,player,Sri Lanka,S de Livera
+info,player,Sri Lanka,MNK Fernando
+info,player,Sri Lanka,SSD Arachchige
+info,player,Sri Lanka,KNA Bandara
+info,player,Sri Lanka,KTH Ratnayake
+info,player,Sri Lanka,MADI Hemantha
+info,player,Sri Lanka,W Sahan
+info,player,Sri Lanka,V Viyaskanth
+info,player,Sri Lanka,N Thushara
+info,player,Bangladesh,Saif Hassan
+info,player,Bangladesh,Tanzid Hasan
+info,player,Bangladesh,Liton Das
+info,player,Bangladesh,Parvez Hossain Emon
+info,player,Bangladesh,Towhid Hridoy
+info,player,Bangladesh,Yasir Ali Chowdhury
+info,player,Bangladesh,Mahedi Hasan
+info,player,Bangladesh,Rishad Hossain
+info,player,Bangladesh,Nasum Ahmed
+info,player,Bangladesh,Al Islam
+info,player,Bangladesh,Mustafizur Rahman
+info,registry,people,Al Islam,45d38a84
+info,registry,people,Faisal Afridi,ed0bc503
+info,registry,people,Farooq Khan,c1d0caa5
+info,registry,people,KNA Bandara,585dda5d
+info,registry,people,KTH Ratnayake,4eb02f2e
+info,registry,people,Kamran Chaudary,77817be7
+info,registry,people,L Croospulle,e30c9b2d
+info,registry,people,Liton Das,0404d43c
+info,registry,people,MADI Hemantha,58431ca0
+info,registry,people,MNK Fernando,ba603555
+info,registry,people,Mahedi Hasan,9dad0f2e
+info,registry,people,Mustafizur Rahman,0a8fce53
+info,registry,people,N Thushara,ee1b6c27
+info,registry,people,Nasum Ahmed,37654b75
+info,registry,people,Nitin Menon,e1d41d9e
+info,registry,people,Parvez Hossain Emon,489aaf0a
+info,registry,people,Rishad Hossain,5935d694
+info,registry,people,S de Livera,77708937
+info,registry,people,SSD Arachchige,c05f9d20
+info,registry,people,Saif Hassan,bb95564b
+info,registry,people,Sineth Jayawardena,e4bf3570
+info,registry,people,Tanzid Hasan,80fe764d
+info,registry,people,Towhid Hridoy,9e52a414
+info,registry,people,V Kalidas,42d76418
+info,registry,people,V Viyaskanth,03a83c50
+info,registry,people,W Sahan,d86d276e
+info,registry,people,Yasir Ali Chowdhury,5791b840
+info,registry,venues,Korogi Sports Park,bef5bb0f

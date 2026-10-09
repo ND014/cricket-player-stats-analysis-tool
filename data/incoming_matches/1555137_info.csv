@@ -1,0 +1,67 @@
+version,2.4.0
+info,balls_per_over,6
+info,team,Indonesia
+info,team,South Korea
+info,gender,male
+info,team_type,international
+info,season,2026/27
+info,date,2026/10/05
+info,match_id,1555137
+info,match_type,T20
+info,match_type_number,4158
+info,overs,20
+info,event,Indonesia tour of South Korea
+info,match_number,3
+info,venue,"Yeonhui Cricket Ground, Incheon"
+info,city,Incheon
+info,toss_winner,South Korea
+info,toss_decision,field
+info,target_overs,2,20
+info,target_runs,2,100
+info,winner,South Korea
+info,winner_wickets,8
+info,player,Indonesia,GA Priandana
+info,player,Indonesia,Rohit Sharma
+info,player,Indonesia,KD Kesuma
+info,player,Indonesia,KN Chaddha
+info,player,Indonesia,IK Gamantika
+info,player,Indonesia,GD Arta
+info,player,Indonesia,Ahmad Ramdoni
+info,player,Indonesia,IKEG Artawan
+info,player,Indonesia,Anjar Tadarus
+info,player,Indonesia,DGAPD Wiswi
+info,player,Indonesia,Deep Harian
+info,player,South Korea,Sageer Ahmad
+info,player,South Korea,BI Dilruksha
+info,player,South Korea,DVD Madampage
+info,player,South Korea,Alam Nakash
+info,player,South Korea,Aamir Lal
+info,player,South Korea,Areeb Khalid
+info,player,South Korea,CV Ranasinghe
+info,player,South Korea,Jun Hyunwoo
+info,player,South Korea,Kuldeep Gurjar
+info,player,South Korea,S Maduranga
+info,player,South Korea,Saurabh Kumar
+info,registry,people,Aamir Lal,2472ad2c
+info,registry,people,Ahmad Ramdoni,b5f30525
+info,registry,people,Alam Nakash,90830f8d
+info,registry,people,Anjar Tadarus,72275237
+info,registry,people,Areeb Khalid,e17de07a
+info,registry,people,BI Dilruksha,bf60e1d2
+info,registry,people,CV Ranasinghe,b1a4226c
+info,registry,people,DGAPD Wiswi,d3d096f5
+info,registry,people,DVD Madampage,f681fa6e
+info,registry,people,Deep Harian,79a29279
+info,registry,people,GA Priandana,2af0e3b1
+info,registry,people,GD Arta,e969e580
+info,registry,people,IK Gamantika,4d7c5b56
+info,registry,people,IKEG Artawan,190957d2
+info,registry,people,Jun Hyunwoo,431f2dd4
+info,registry,people,KD Kesuma,4b349dc0
+info,registry,people,KN Chaddha,a88e4013
+info,registry,people,Kuldeep Gurjar,2306b48a
+info,registry,people,Rohit Sharma,a1cbdeeb
+info,registry,people,S Maduranga,68f24545
+info,registry,people,Sageer Ahmad,fb266d70
+info,registry,people,Saurabh Kumar,afb1e61d
+info,registry,venues,"Yeonhui Cricket Ground, Incheon",7abed07e

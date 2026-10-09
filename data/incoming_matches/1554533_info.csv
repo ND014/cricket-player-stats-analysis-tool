@@ -1,0 +1,76 @@
+version,2.4.0
+info,balls_per_over,6
+info,team,Bhutan
+info,team,Myanmar
+info,gender,male
+info,team_type,international
+info,season,2026/27
+info,date,2026/10/05
+info,match_id,1554533
+info,match_type,T20
+info,match_type_number,4159
+info,overs,20
+info,event,ICC Men's T20 World Cup Sub Regional Asia Qualifier A
+info,match_number,1
+info,venue,"Bayuemas Oval, Kuala Lumpur"
+info,city,Kuala Lumpur
+info,toss_winner,Bhutan
+info,toss_decision,bat
+info,player_of_match,T Jamtsho
+info,umpire,DN Subedi
+info,umpire,Tabarak Dar
+info,reserve_umpire,Ramasamy Venkatesh
+info,match_referee,Neeyamur Rashid
+info,target_overs,2,20
+info,target_runs,2,120
+info,winner,Bhutan
+info,winner_runs,27
+info,player,Bhutan,Tshering Tashi
+info,player,Bhutan,Tenjin Rabgey
+info,player,Bhutan,S Chophel
+info,player,Bhutan,RM Dorji
+info,player,Bhutan,N Chejay
+info,player,Bhutan,T Jamtsho
+info,player,Bhutan,Tashi Dorji
+info,player,Bhutan,GK Ghalley
+info,player,Bhutan,A Mongar
+info,player,Bhutan,K Dorji
+info,player,Bhutan,S Yeshi
+info,player,Myanmar,Pyae Phyo Wai
+info,player,Myanmar,Paing Danu
+info,player,Myanmar,H Lin Oo
+info,player,Myanmar,H Lin Aung
+info,player,Myanmar,KK Lin Thu
+info,player,Myanmar,Khin Aye
+info,player,Myanmar,Y Naing Tun
+info,player,Myanmar,Sai Hla Htwe
+info,player,Myanmar,Aung Ko Ko
+info,player,Myanmar,Nyeing Cham Soe
+info,player,Myanmar,Kaung Htet Kyaw
+info,registry,people,A Mongar,940255af
+info,registry,people,Aung Ko Ko,648d060e
+info,registry,people,DN Subedi,fb0a571f
+info,registry,people,GK Ghalley,2d1b6dee
+info,registry,people,H Lin Aung,c343a8c6
+info,registry,people,H Lin Oo,2e005bfd
+info,registry,people,K Dorji,f9b9883f
+info,registry,people,KK Lin Thu,6cf75582
+info,registry,people,Kaung Htet Kyaw,e1bd3e2e
+info,registry,people,Khin Aye,ad2efd29
+info,registry,people,N Chejay,a9e63549
+info,registry,people,Neeyamur Rashid,bd81a027
+info,registry,people,Nyeing Cham Soe,45b5ce8d
+info,registry,people,Paing Danu,1eb5affb
+info,registry,people,Pyae Phyo Wai,09e86895
+info,registry,people,RM Dorji,3d7f02d4
+info,registry,people,Ramasamy Venkatesh,8ad68ea7
+info,registry,people,S Chophel,45f4af74
+info,registry,people,S Yeshi,0c24fb7b
+info,registry,people,Sai Hla Htwe,740d29d5
+info,registry,people,T Jamtsho,c01d1c0a
+info,registry,people,Tabarak Dar,2259c12d
+info,registry,people,Tashi Dorji,0f05655d
+info,registry,people,Tenjin Rabgey,1fed517a
+info,registry,people,Tshering Tashi,596c60cf
+info,registry,people,Y Naing Tun,97b109d2
+info,registry,venues,"Bayuemas Oval, Kuala Lumpur",8755e10d

@@ -1,0 +1,76 @@
+version,2.4.0
+info,balls_per_over,6
+info,team,Zimbabwe
+info,team,West Indies
+info,gender,female
+info,team_type,international
+info,season,2026
+info,date,2026/10/07
+info,match_id,1554980
+info,match_type,T20
+info,match_type_number,3031
+info,overs,20
+info,event,West Indies Women tour of Zimbabwe
+info,match_number,3
+info,venue,"Takashinga Sports Club, Highfield, Harare"
+info,city,Harare
+info,toss_winner,Zimbabwe
+info,toss_decision,bat
+info,player_of_match,SR Taylor
+info,umpire,I Chabi
+info,umpire,Kim Cotton
+info,reserve_umpire,F Mutizwa
+info,match_referee,O Chirombe
+info,target_overs,2,20
+info,target_runs,2,143
+info,winner,West Indies
+info,winner_wickets,8
+info,player,Zimbabwe,K Ndlovu
+info,player,Zimbabwe,B Biza
+info,player,Zimbabwe,CS Mugeri-Tiripano
+info,player,Zimbabwe,CT Dhururu
+info,player,Zimbabwe,N Gwanzura
+info,player,Zimbabwe,C Mutasa
+info,player,Zimbabwe,M Mavunga
+info,player,Zimbabwe,L Phiri
+info,player,Zimbabwe,T Makusha
+info,player,Zimbabwe,K Chigora
+info,player,Zimbabwe,N Sibanda
+info,player,West Indies,RMAU Grimmond
+info,player,West Indies,JKC Claxton
+info,player,West Indies,SR Taylor
+info,player,West Indies,J Glasgow
+info,player,West Indies,CA Henry
+info,player,West Indies,AA Alleyne
+info,player,West Indies,Z James
+info,player,West Indies,M Mangru
+info,player,West Indies,ASS Fletcher
+info,player,West Indies,S Hector
+info,player,West Indies,K Ramharack
+info,registry,people,AA Alleyne,4b0e3049
+info,registry,people,ASS Fletcher,42d9dd09
+info,registry,people,B Biza,8a522c6c
+info,registry,people,C Mutasa,1ba50005
+info,registry,people,CA Henry,75820733
+info,registry,people,CS Mugeri-Tiripano,99c86133
+info,registry,people,CT Dhururu,8d7fba79
+info,registry,people,F Mutizwa,d3e83eef
+info,registry,people,I Chabi,5e39110e
+info,registry,people,J Glasgow,a2632c7c
+info,registry,people,JKC Claxton,e22f8ec1
+info,registry,people,K Chigora,5f311f1a
+info,registry,people,K Ndlovu,8d25271a
+info,registry,people,K Ramharack,321c980e
+info,registry,people,Kim Cotton,67a7c2ee
+info,registry,people,L Phiri,cca8bdca
+info,registry,people,M Mangru,b9fec7a5
+info,registry,people,M Mavunga,bb411d1e
+info,registry,people,N Gwanzura,9c2e3040
+info,registry,people,N Sibanda,edf62a25
+info,registry,people,O Chirombe,6345307f
+info,registry,people,RMAU Grimmond,5215d4c3
+info,registry,people,S Hector,3faa312e
+info,registry,people,SR Taylor,92cf79a8
+info,registry,people,T Makusha,df15677b
+info,registry,people,Z James,816af623
+info,registry,venues,"Takashinga Sports Club, Highfield, Harare",3d9c33b7
