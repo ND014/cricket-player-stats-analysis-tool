@@ -2633,6 +2633,13 @@ def get_bowler_defensive_wagon_data(player_name: str, vs_batter_hand: str = 'ALL
     if len(df) == 0:
         return None
 
+    # Filter by batter hand — classify post-query (no DB column for hand)
+    if vs_batter_hand and vs_batter_hand != 'ALL':
+        df['_hand'] = df['striker'].apply(classify_batter_hand)
+        df = df[df['_hand'] == vs_batter_hand].reset_index(drop=True)
+        if len(df) == 0:
+            return None
+
     total_runs = int(df['total_runs_conceded'].sum())
     total_balls = len(df)
     total_dots = int((df['total_runs_conceded'] == 0).sum())
@@ -2781,7 +2788,9 @@ def plot_bowler_defensive_wheel(player_name: str, vs_batter_hand: str = 'ALL', p
     wkts = data['total_wkts']
     dot_pct = round(data['total_dots'] * 100.0 / max(1, t_balls), 1)
     bnd_pct = round((data['total_fours'] + data['total_sixes']) * 100.0 / max(1, t_balls), 1)
-    scope_str = f"Phase: {phase}" if phase != 'ALL' else "All Phases"
+    phase_str = f"Phase: {phase}" if phase != 'ALL' else "All Phases"
+    hand_str = f" vs {vs_batter_hand}" if vs_batter_hand != 'ALL' else ""
+    scope_str = f"{phase_str}{hand_str}"
 
     print("=" * 88)
     print(f"[*] PRO DEFENSIVE RADIAL AUDIT: {full_name.upper()} | {scope_str}")
