@@ -360,11 +360,20 @@
                   </select>
                 </div>
 
-                <div class="filter-group">
+                <div class="filter-group venue-filter-group">
                   <label for="xrVenueSelect" class="filter-label">Stadium / Venue:</label>
-                  <select id="xrVenueSelect" class="custom-select filter-select">
-                    <option value="ALL">All Stadiums &amp; Venues</option>
-                  </select>
+                  <div class="venue-search-combo">
+                    <div class="venue-search-input-wrap">
+                      <input type="text" id="xrVenueSearchInput" class="venue-search-input" placeholder="Type to search stadium..." autocomplete="off">
+                      <button type="button" id="xrVenueSearchClearBtn" class="venue-clear-btn" title="Clear search" style="display: none;">✕</button>
+                    </div>
+                    <button type="button" id="xrVenueSearchBtn" class="venue-search-btn" title="Search and apply stadium filter">
+                      <span>🔍 Search</span>
+                    </button>
+                    <select id="xrVenueSelect" class="custom-select filter-select">
+                      <option value="ALL">All Stadiums &amp; Venues</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div class="filter-group filter-actions">
@@ -702,7 +711,7 @@
                 <span class="slot-role-hint" id="p1RoleHint">Batter or Bowler</span>
               </div>
               <div class="cockpit-input-wrap">
-                <span class="cockpit-input-icon">🏏/🎯</span>
+                <span class="cockpit-input-icon"></span>
                 <input type="text" id="compPlayer1Input" class="cockpit-search-input" value="Virat Kohli"
                   placeholder="Search Player 1..." autocomplete="off">
               </div>
@@ -725,7 +734,7 @@
                 <span class="slot-role-hint" id="p2RoleHint">Batter or Bowler</span>
               </div>
               <div class="cockpit-input-wrap">
-                <span class="cockpit-input-icon">🎯/🏏</span>
+                <span class="cockpit-input-icon"></span>
                 <input type="text" id="compPlayer2Input" class="cockpit-search-input" value="Sandeep Sharma"
                   placeholder="Search Player 2..." autocomplete="off">
               </div>

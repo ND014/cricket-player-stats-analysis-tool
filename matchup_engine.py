@@ -77,6 +77,7 @@ BOWLER_ARCHETYPES = {
     'GJ Maxwell': 'OFF_SPIN', 'M Theekshana': 'OFF_SPIN', 'Moeen Ali': 'OFF_SPIN',
     'Harbhajan Singh': 'OFF_SPIN', 'Jayant Yadav': 'OFF_SPIN', 'N Rana': 'OFF_SPIN',
     'K Gowtham': 'OFF_SPIN', 'Akshay Wakhare': 'OFF_SPIN', 'Tanush Kotian': 'OFF_SPIN',
+    'NL McCullum': 'OFF_SPIN',
 
     # Right-Arm Wrist Spin (WRIST_SPIN)
     'YS Chahal': 'WRIST_SPIN', 'Rashid Khan': 'WRIST_SPIN', 'R Bishnoi': 'WRIST_SPIN',
@@ -320,6 +321,7 @@ INDIAN_PLAYER_METADATA = {
     'Shaheen Shah Afridi': {'role': 'Bowler', 'position': 'TAILENDER', 'hand': 'LHB', 'bowling_arm': 'LAF', 'market_price': 14.0, 'public_label': 'Lethal Opening-Over Left-Arm Express'},
     'Babar Azam': {'role': 'Batter', 'position': 'TOP_ORDER', 'hand': 'RHB', 'market_price': 12.0, 'public_label': 'Prolific Global T20 Anchor'},
     'TH David': {'role': 'Batter', 'position': 'FINISHER', 'hand': 'RHB', 'market_price': 8.25, 'public_label': 'High-Caliber Global Death Slogger'},
+    'NL McCullum': {'role': 'All-Rounder', 'position': 'FINISHER', 'hand': 'RHB', 'bowling_arm': 'OFF_SPIN', 'market_price': 1.0, 'public_label': 'Kiwi Bowling All-Rounder'},
     'SP Narine': {'role': 'All-Rounder', 'position': 'TOP_ORDER', 'hand': 'LHB', 'bowling_arm': 'OFF_SPIN', 'market_price': 12.0, 'public_label': 'Dual-Threat MVP Opener & Spin Squeezer'}
 }
 
@@ -959,10 +961,11 @@ def get_top_punisher_batters(bowler_name: str, top_n: int = 3) -> pd.DataFrame:
 # ==============================================================================
 # TACTICAL MATCHUP SPLITS (VS BOWLING TYPES & VS BATTER PROFILES)
 # ==============================================================================
-def get_batter_matchup_splits(player_name: str, bowler_types: list = None, tournament: str = 'ALL') -> dict:
+def get_batter_matchup_splits(player_name: str, bowler_types: list = None, tournament: str = 'ALL', pitch_category: str = 'ALL', venue: str = 'ALL') -> dict:
     """
     Computes comprehensive batting stats split by bowling archetype(s).
     Supports single archetype (e.g. ['LAF']), multiple archetypes (e.g. ['LAF', 'RAF']), or ALL.
+    Also supports contextual cross-filtering by pitch_category ('HARD', 'BALANCED', 'EASY') and venue/stadium.
     """
     cric_name = resolve_player_name(player_name)
     conn = get_t20_db_connection()
@@ -981,14 +984,23 @@ def get_batter_matchup_splits(player_name: str, bowler_types: list = None, tourn
 
     placeholders = ','.join(['?'] * len(sel_types))
     query = f"""
-        SELECT bowler, bowler_archetype, phase, runs_off_bat, is_dot, is_boundary, is_wicket, is_legal_ball
-        FROM deliveries
-        WHERE striker = ? AND bowler_archetype IN ({placeholders}) AND is_legal_ball = 1
+        SELECT d.bowler, d.bowler_archetype, d.phase, d.runs_off_bat, d.is_dot, d.is_boundary, d.is_wicket, d.is_legal_ball, d.venue, mb.pitch_category
+        FROM deliveries d
+        JOIN match_baselines mb ON d.match_id = mb.match_id
+        WHERE d.striker = ? AND d.bowler_archetype IN ({placeholders}) AND d.is_legal_ball = 1
     """
     params = [cric_name] + sel_types
     if tournament != 'ALL':
-        query += " AND tournament = ?"
+        query += " AND d.tournament = ?"
         params.append(tournament)
+    if pitch_category and str(pitch_category).strip().upper() != 'ALL':
+        query += " AND mb.pitch_category = ?"
+        params.append(str(pitch_category).strip().upper())
+    if venue and str(venue).strip() != 'ALL':
+        v_str = str(venue).strip()
+        norm_v = normalize_venue_name(v_str)
+        query += " AND (d.venue = ? OR d.venue = ?)"
+        params.extend([v_str, norm_v])
 
     df = pd.read_sql(query, conn, params=params)
 
@@ -1068,6 +1080,8 @@ def get_batter_matchup_splits(player_name: str, bowler_types: list = None, tourn
         'role': 'Batter',
         'is_all': is_all,
         'selected_types': sel_types,
+        'pitch_category': pitch_category,
+        'venue': venue,
         'summary': {
             'balls': total_balls,
             'runs': total_runs,
@@ -1088,10 +1102,11 @@ def get_batter_matchup_splits(player_name: str, bowler_types: list = None, tourn
     }
 
 
-def get_bowler_matchup_splits(player_name: str, batter_hands: list = None, phases: list = None, tournament: str = 'ALL') -> dict:
+def get_bowler_matchup_splits(player_name: str, batter_hands: list = None, phases: list = None, tournament: str = 'ALL', pitch_category: str = 'ALL', venue: str = 'ALL') -> dict:
     """
     Computes comprehensive bowling stats split by batter hand (RHB/LHB) and/or match phase(s).
     Supports single hand, multiple hands, single phase, multiple phases, or ALL.
+    Also supports contextual cross-filtering by pitch_category ('HARD', 'BALANCED', 'EASY') and venue/stadium.
     """
     cric_name = resolve_player_name(player_name)
     conn = get_t20_db_connection()
@@ -1122,14 +1137,23 @@ def get_bowler_matchup_splits(player_name: str, batter_hands: list = None, phase
             is_all_phases = (len(sel_phases) == len(all_phases))
 
     query = """
-        SELECT striker, phase, total_runs_conceded, runs_off_bat, is_dot, is_boundary, is_wicket, is_legal_ball, wides, noballs
-        FROM deliveries
-        WHERE bowler = ?
+        SELECT d.striker, d.phase, d.total_runs_conceded, d.runs_off_bat, d.is_dot, d.is_boundary, d.is_wicket, d.is_legal_ball, d.wides, d.noballs, d.venue, mb.pitch_category
+        FROM deliveries d
+        JOIN match_baselines mb ON d.match_id = mb.match_id
+        WHERE d.bowler = ?
     """
     params = [cric_name]
     if tournament != 'ALL':
-        query += " AND tournament = ?"
+        query += " AND d.tournament = ?"
         params.append(tournament)
+    if pitch_category and str(pitch_category).strip().upper() != 'ALL':
+        query += " AND mb.pitch_category = ?"
+        params.append(str(pitch_category).strip().upper())
+    if venue and str(venue).strip() != 'ALL':
+        v_str = str(venue).strip()
+        norm_v = normalize_venue_name(v_str)
+        query += " AND (d.venue = ? OR d.venue = ?)"
+        params.extend([v_str, norm_v])
 
     df = pd.read_sql(query, conn, params=params)
     if len(df) == 0:
@@ -1247,6 +1271,8 @@ def get_bowler_matchup_splits(player_name: str, batter_hands: list = None, phase
         'is_all': (is_all_hands and is_all_phases),
         'selected_hands': sel_hands,
         'selected_phases': sel_phases,
+        'pitch_category': pitch_category,
+        'venue': venue,
         'summary': {
             'balls': total_balls,
             'overs': overs_str,
@@ -1361,7 +1387,16 @@ def plot_matchup_splits_comparison(splits_data: dict, show_plot: bool = False, s
                 h = b.get_height()
                 ax3.text(b.get_x() + b.get_width()/2, h + 1.2, f"{h:.1f}\n({outs}w)", ha='center', va='bottom', fontsize=7.5, color='#E2E8F0', fontweight='medium')
 
-            fig.suptitle(f"{full_name} — Performance Splits vs Bowling Styles",
+            sub_venue_parts = []
+            p_cat = splits_data.get('pitch_category', 'ALL')
+            ven = splits_data.get('venue', 'ALL')
+            if p_cat and p_cat != 'ALL':
+                sub_venue_parts.append(f"[{p_cat} Pitch]")
+            if ven and ven != 'ALL':
+                sub_venue_parts.append(f"@ {ven}")
+            venue_ctx = f" • {' '.join(sub_venue_parts)}" if sub_venue_parts else ""
+
+            fig.suptitle(f"{full_name} — Performance Splits vs Bowling Styles{venue_ctx}",
                          fontsize=12, fontweight='bold', color='#F8FAFC', y=1.02)
         else:
             # Single archetype selected: compare phases against this archetype
@@ -1414,7 +1449,16 @@ def plot_matchup_splits_comparison(splits_data: dict, show_plot: bool = False, s
                 h = b.get_height()
                 ax3.text(b.get_x() + b.get_width()/2, h + 1.2, f"{h:.1f}\n({outs}w)", ha='center', va='bottom', fontsize=7.5, color='#E2E8F0', fontweight='medium')
 
-            fig.suptitle(f"{full_name} vs {a_single['archetype']} Across Phases",
+            sub_venue_parts = []
+            p_cat = splits_data.get('pitch_category', 'ALL')
+            ven = splits_data.get('venue', 'ALL')
+            if p_cat and p_cat != 'ALL':
+                sub_venue_parts.append(f"[{p_cat} Pitch]")
+            if ven and ven != 'ALL':
+                sub_venue_parts.append(f"@ {ven}")
+            venue_ctx = f" • {' '.join(sub_venue_parts)}" if sub_venue_parts else ""
+
+            fig.suptitle(f"{full_name} vs {a_single['archetype']} Across Phases{venue_ctx}",
                          fontsize=12, fontweight='bold', color='#F8FAFC', y=1.02)
 
     else:
@@ -1469,7 +1513,16 @@ def plot_matchup_splits_comparison(splits_data: dict, show_plot: bool = False, s
             h = b.get_height()
             ax3.text(b.get_x() + b.get_width()/2, h + 0.6, f"{h:.1f} SR\n({wkts}w)", ha='center', va='bottom', fontsize=7.5, color='#E2E8F0', fontweight='medium')
 
-        fig.suptitle(f"{full_name} — Tactical Splits vs RHB & LHB Batters",
+        sub_venue_parts = []
+        p_cat = splits_data.get('pitch_category', 'ALL')
+        ven = splits_data.get('venue', 'ALL')
+        if p_cat and p_cat != 'ALL':
+            sub_venue_parts.append(f"[{p_cat} Pitch]")
+        if ven and ven != 'ALL':
+            sub_venue_parts.append(f"@ {ven}")
+        venue_ctx = f" • {' '.join(sub_venue_parts)}" if sub_venue_parts else ""
+
+        fig.suptitle(f"{full_name} — Tactical Splits vs RHB & LHB Batters{venue_ctx}",
                      fontsize=12, fontweight='bold', color='#F8FAFC', y=1.02)
 
     plt.tight_layout()
@@ -3815,12 +3868,13 @@ def normalize_venue_name(venue: str) -> str:
     return VENUE_MAPPINGS.get(v_clean, v_clean)
 
 
-def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament: str = 'ALL', pitch_category: str = 'ALL', venue: str = 'ALL') -> dict:
+def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament: str = 'ALL', pitch_category: str = 'ALL', venue: str = 'ALL', bowler_types: list = None, batter_hands: list = None, phases: list = None) -> dict:
     """
     Computes Contextual Expected Runs (xR) and Run Value (RAE / Saved Runs)
     by benchmarking ball-by-ball output against pitch and match difficulty.
-    Supports filtering by specific pitch category ('HARD', 'BALANCED', 'EASY')
-    or specific stadium / venue.
+    Supports filtering by specific pitch category ('HARD', 'BALANCED', 'EASY'),
+    specific stadium / venue, and cross-filtering by opponent bowling archetype(s)
+    (for batters) or batter stance / match phases (for bowlers).
     """
     cric_name = resolve_player_name(player_name)
     conn = get_t20_db_connection()
@@ -3833,6 +3887,13 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
         tourn_filter = " AND d.tournament = ? "
         params.append(tournament)
 
+    all_archetypes = ['LAF', 'RAF', 'LAM', 'RAM', 'OFF_SPIN', 'WRIST_SPIN', 'SLA', 'LEFT_WRIST_SPIN']
+    sel_types = None
+    if bowler_types and 'ALL' not in bowler_types and len(bowler_types) > 0:
+        sel_types = [t for t in bowler_types if t in all_archetypes]
+        if not sel_types or len(sel_types) == len(all_archetypes):
+            sel_types = None
+
     if not is_bowler:
         q = f"""
             SELECT 
@@ -3842,6 +3903,8 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
                 d.tournament,
                 d.phase,
                 d.runs_off_bat,
+                d.bowler,
+                d.bowler_archetype,
                 mb.match_rpo,
                 mb.par_score_20,
                 mb.pitch_category,
@@ -3859,14 +3922,26 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
         if len(df_all) == 0:
             return None
 
-        # 1. Pitch Category Splits across all deliveries
+        # Cross-filter deliveries by selected bowler archetype(s)
+        if sel_types:
+            df_all = df_all[df_all['bowler_archetype'].isin(sel_types)]
+
+        # Map verbose DB strings to expected categories
+        df_all['pitch_category'] = df_all['pitch_category'].replace({
+            'Bowler Friendly / Bowling Paradise': 'HARD',
+            'Balanced Contest / True Surface': 'BALANCED',
+            'Batting Friendly / Flat Track': 'EASY',
+            'Extreme Highway / Boundary Paradise': 'EASY'
+        })
+
+        # 1. Pitch Category Splits across all deliveries vs selected opponents
         pitch_splits = []
         for pcat, label, desc, par_range in [
             ('HARD', 'Tough / Bowling Minefields', 'Sticky & turning pitches with Par < 155 (e.g. Mirpur, Chepauk turners, Lucknow)', '< 155'),
             ('BALANCED', 'Sporting / Balanced Decks', 'Standard competitive T20 surfaces with Par 155 – 184', '155 – 184'),
             ('EASY', 'Flat Highways / Batting Paradises', 'High-scoring roads with Par 185+ (e.g. Chinnaswamy, Wankhede, Hyderabad)', '185+')
         ]:
-            sub = df_all[df_all['pitch_category'] == pcat]
+            sub = df_all[df_all['pitch_category'] == pcat] if len(df_all) > 0 else pd.DataFrame()
             if len(sub) > 0:
                 s_balls = len(sub)
                 s_runs = int(sub['runs_off_bat'].sum())
@@ -3888,40 +3963,55 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
                     'impact_ratio': round(s_runs / max(0.1, s_xr), 2)
                 })
 
-        # 2. Stadium / Venue Breakdown across all deliveries
+        # 2. Stadium / Venue Breakdown across all deliveries vs selected opponents
         venue_splits = []
-        v_agg = df_all.groupby('venue').agg(
-            matches=('match_id', 'nunique'),
-            balls=('runs_off_bat', 'count'),
-            runs=('runs_off_bat', 'sum'),
-            xr=('exp_rpb', 'sum'),
-            avg_par=('par_score_20', 'mean')
-        ).reset_index().sort_values('balls', ascending=False)
+        if len(df_all) > 0:
+            v_agg = df_all.groupby('venue').agg(
+                matches=('match_id', 'nunique'),
+                balls=('runs_off_bat', 'count'),
+                runs=('runs_off_bat', 'sum'),
+                xr=('exp_rpb', 'sum'),
+                avg_par=('par_score_20', 'mean')
+            ).reset_index().sort_values('balls', ascending=False)
 
-        for _, vr in v_agg.iterrows():
-            v_balls = int(vr['balls'])
-            if v_balls < 6:
-                continue
-            v_runs = int(vr['runs'])
-            v_xr = float(vr['xr'])
-            v_rv = round(v_runs - v_xr, 1)
-            venue_splits.append({
-                'venue': str(vr['venue']),
-                'matches': int(vr['matches']),
-                'balls': v_balls,
-                'runs': v_runs,
-                'xr': round(v_xr, 1),
-                'run_value': v_rv,
-                'actual_sr': round(v_runs * 100.0 / max(1, v_balls), 1),
-                'expected_sr': round(v_xr * 100.0 / max(1, v_balls), 1),
-                'avg_par': round(float(vr['avg_par']), 0)
-            })
+            for _, vr in v_agg.iterrows():
+                v_balls = int(vr['balls'])
+                v_runs = int(vr['runs'])
+                v_xr = float(vr['xr'])
+                v_rv = round(v_runs - v_xr, 1)
+                venue_splits.append({
+                    'venue': str(vr['venue']),
+                    'matches': int(vr['matches']),
+                    'balls': v_balls,
+                    'runs': v_runs,
+                    'xr': round(v_xr, 1),
+                    'run_value': v_rv,
+                    'actual_sr': round(v_runs * 100.0 / max(1, v_balls), 1),
+                    'expected_sr': round(v_xr * 100.0 / max(1, v_balls), 1),
+                    'avg_par': round(float(vr['avg_par']), 0)
+                })
 
-        # 3. Apply active filters
-        df = df_all.copy()
-        if pitch_category and str(pitch_category).strip().upper() != 'ALL':
+        all_venues_df = pd.read_sql("SELECT DISTINCT venue FROM match_baselines", conn)
+        existing_venues = {v['venue'] for v in venue_splits}
+        for v in all_venues_df['venue']:
+            if v not in existing_venues:
+                venue_splits.append({
+                    'venue': v,
+                    'matches': 0,
+                    'balls': 0,
+                    'runs': 0,
+                    'xr': 0.0,
+                    'run_value': 0.0,
+                    'actual_sr': 0.0,
+                    'expected_sr': 0.0,
+                    'avg_par': 0.0
+                })
+
+        # 3. Apply active pitch & venue filters
+        df = df_all.copy() if len(df_all) > 0 else pd.DataFrame()
+        if len(df) > 0 and pitch_category and str(pitch_category).strip().upper() != 'ALL':
             df = df[df['pitch_category'] == str(pitch_category).strip().upper()]
-        if venue and str(venue).strip() != 'ALL':
+        if len(df) > 0 and venue and str(venue).strip() != 'ALL':
             v_str = str(venue).strip()
             norm_v = normalize_venue_name(v_str)
             df = df[(df['venue'] == v_str) | (df['venue'] == norm_v)]
@@ -3972,7 +4062,7 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
             match_agg['run_value'] = match_agg['runs'] - match_agg['xr']
             match_agg['actual_sr'] = (match_agg['runs'] * 100.0 / match_agg['balls'].clip(lower=1)).round(1)
             match_agg['par_sr'] = (match_agg['xr'] * 100.0 / match_agg['balls'].clip(lower=1)).round(1)
-            top_matches = match_agg[match_agg['balls'] >= 8].sort_values('run_value', ascending=False).head(5)
+            top_matches = match_agg[match_agg['balls'] >= 6].sort_values('run_value', ascending=False).head(5)
             top_innings = []
             for _, r in top_matches.iterrows():
                 top_innings.append({
@@ -3995,6 +4085,8 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
             'tournament': tournament,
             'active_pitch_category': pitch_category,
             'active_venue': venue,
+            'selected_bowler_types': sel_types,
+            'is_all_types': (sel_types is None),
             'total_balls': total_balls,
             'total_runs': total_runs,
             'expected_runs': round(total_xr, 1),
@@ -4017,6 +4109,7 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
                 d.venue,
                 d.tournament,
                 d.phase,
+                d.striker,
                 d.total_runs_conceded,
                 d.is_wicket,
                 mb.match_rpo,
@@ -4036,14 +4129,35 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
         if len(df_all) == 0:
             return None
 
-        # 1. Pitch Category Splits across all deliveries
+        # Cross-filter deliveries by selected batter hands and phases
+        if len(df_all) > 0:
+            df_all['hand'] = df_all['striker'].apply(classify_batter_hand)
+            if batter_hands and 'ALL' not in batter_hands and len(batter_hands) > 0:
+                sel_hands = [h for h in batter_hands if h in ['RHB', 'LHB']]
+                if len(sel_hands) > 0 and len(sel_hands) < 2:
+                    df_all = df_all[df_all['hand'].isin(sel_hands)]
+
+            if phases and 'ALL' not in phases and len(phases) > 0:
+                sel_phases = [p for p in phases if p in ['Powerplay', 'Middle', 'Death']]
+                if len(sel_phases) > 0 and len(sel_phases) < 3:
+                    df_all = df_all[df_all['phase'].isin(sel_phases)]
+
+        # Map verbose DB strings to expected categories
+        df_all['pitch_category'] = df_all['pitch_category'].replace({
+            'Bowler Friendly / Bowling Paradise': 'HARD',
+            'Balanced Contest / True Surface': 'BALANCED',
+            'Batting Friendly / Flat Track': 'EASY',
+            'Extreme Highway / Boundary Paradise': 'EASY'
+        })
+
+        # 1. Pitch Category Splits across all deliveries vs selected opponents
         pitch_splits = []
         for pcat, label, desc, par_range in [
             ('HARD', 'Tough / Bowling Minefields', 'Low-scoring decks where par is < 155', '< 155'),
             ('BALANCED', 'Sporting / Balanced Decks', 'Standard competitive surfaces with Par 155 – 184', '155 – 184'),
             ('EASY', 'Flat Highways / Batting Paradises', 'High-scoring roads with Par 185+ (Damage containment test)', '185+')
         ]:
-            sub = df_all[df_all['pitch_category'] == pcat]
+            sub = df_all[df_all['pitch_category'] == pcat] if len(df_all) > 0 else pd.DataFrame()
             if len(sub) > 0:
                 s_balls = len(sub)
                 s_conceded = int(sub['total_runs_conceded'].sum())
@@ -4065,40 +4179,55 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
                     'impact_ratio': round(s_xrc / max(0.1, s_conceded), 2)
                 })
 
-        # 2. Stadium / Venue Breakdown across all deliveries
+        # 2. Stadium / Venue Breakdown across all deliveries vs selected opponents
         venue_splits = []
-        v_agg = df_all.groupby('venue').agg(
-            matches=('match_id', 'nunique'),
-            balls=('total_runs_conceded', 'count'),
-            conceded=('total_runs_conceded', 'sum'),
-            xrc=('exp_rpb', 'sum'),
-            avg_par=('par_score_20', 'mean')
-        ).reset_index().sort_values('balls', ascending=False)
+        if len(df_all) > 0:
+            v_agg = df_all.groupby('venue').agg(
+                matches=('match_id', 'nunique'),
+                balls=('total_runs_conceded', 'count'),
+                conceded=('total_runs_conceded', 'sum'),
+                xrc=('exp_rpb', 'sum'),
+                avg_par=('par_score_20', 'mean')
+            ).reset_index().sort_values('balls', ascending=False)
 
-        for _, vr in v_agg.iterrows():
-            v_balls = int(vr['balls'])
-            if v_balls < 6:
-                continue
-            v_conceded = int(vr['conceded'])
-            v_xrc = float(vr['xrc'])
-            v_saved = round(v_xrc - v_conceded, 1)
-            venue_splits.append({
-                'venue': str(vr['venue']),
-                'matches': int(vr['matches']),
-                'balls': v_balls,
-                'runs_conceded': v_conceded,
-                'xrc': round(v_xrc, 1),
-                'runs_saved': v_saved,
-                'actual_econ': round(v_conceded / max(0.1, v_balls / 6.0), 2),
-                'expected_econ': round(v_xrc / max(0.1, v_balls / 6.0), 2),
-                'avg_par': round(float(vr['avg_par']), 0)
-            })
+            for _, vr in v_agg.iterrows():
+                v_balls = int(vr['balls'])
+                v_conceded = int(vr['conceded'])
+                v_xrc = float(vr['xrc'])
+                v_saved = round(v_xrc - v_conceded, 1)
+                venue_splits.append({
+                    'venue': str(vr['venue']),
+                    'matches': int(vr['matches']),
+                    'balls': v_balls,
+                    'runs_conceded': v_conceded,
+                    'xrc': round(v_xrc, 1),
+                    'runs_saved': v_saved,
+                    'actual_econ': round(v_conceded / max(0.1, v_balls / 6.0), 2),
+                    'expected_econ': round(v_xrc / max(0.1, v_balls / 6.0), 2),
+                    'avg_par': round(float(vr['avg_par']), 0)
+                })
 
-        # 3. Apply active filters
-        df = df_all.copy()
-        if pitch_category and str(pitch_category).strip().upper() != 'ALL':
+        all_venues_df = pd.read_sql("SELECT DISTINCT venue FROM match_baselines", conn)
+        existing_venues = {v['venue'] for v in venue_splits}
+        for v in all_venues_df['venue']:
+            if v not in existing_venues:
+                venue_splits.append({
+                    'venue': v,
+                    'matches': 0,
+                    'balls': 0,
+                    'runs_conceded': 0,
+                    'xrc': 0.0,
+                    'runs_saved': 0.0,
+                    'actual_econ': 0.0,
+                    'expected_econ': 0.0,
+                    'avg_par': 0.0
+                })
+
+        # 3. Apply active pitch & venue filters
+        df = df_all.copy() if len(df_all) > 0 else pd.DataFrame()
+        if len(df) > 0 and pitch_category and str(pitch_category).strip().upper() != 'ALL':
             df = df[df['pitch_category'] == str(pitch_category).strip().upper()]
-        if venue and str(venue).strip() != 'ALL':
+        if len(df) > 0 and venue and str(venue).strip() != 'ALL':
             v_str = str(venue).strip()
             norm_v = normalize_venue_name(v_str)
             df = df[(df['venue'] == v_str) | (df['venue'] == norm_v)]
@@ -4152,7 +4281,7 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
             match_agg['runs_saved'] = match_agg['xrc'] - match_agg['conceded']
             match_agg['econ'] = (match_agg['conceded'] / (match_agg['balls'].clip(lower=1) / 6.0)).round(2)
             match_agg['par_econ'] = (match_agg['xrc'] / (match_agg['balls'].clip(lower=1) / 6.0)).round(2)
-            top_matches = match_agg[match_agg['balls'] >= 12].sort_values('runs_saved', ascending=False).head(5)
+            top_matches = match_agg[match_agg['balls'] >= 10].sort_values('runs_saved', ascending=False).head(5)
             top_innings = []
             for _, r in top_matches.iterrows():
                 top_innings.append({
@@ -4176,6 +4305,8 @@ def get_player_expected_runs(player_name: str, role: str = 'Batter', tournament:
             'tournament': tournament,
             'active_pitch_category': pitch_category,
             'active_venue': venue,
+            'selected_hands': batter_hands if batter_hands and 'ALL' not in batter_hands else ['RHB', 'LHB'],
+            'selected_phases': phases if phases and 'ALL' not in phases else ['Powerplay', 'Middle', 'Death'],
             'total_balls': total_balls,
             'overs': overs,
             'total_runs_conceded': total_conceded,
@@ -4288,10 +4419,22 @@ def plot_xr_pitch_splits(xr_data: dict, player_name: str, show_plot: bool = Fals
             ph_lim = max(abs(min(ph_rvs, default=-10)), abs(max(ph_rvs, default=10))) * 1.25
             ax3.set_ylim(-max(25, ph_lim), max(25, ph_lim))
 
+        filter_descs = []
+        sel_types = xr_data.get('selected_bowler_types')
+        if sel_types:
+            filter_descs.append(f"vs {', '.join(sel_types)}")
+        v_act = xr_data.get('active_venue', 'ALL')
+        if v_act and v_act != 'ALL':
+            filter_descs.append(f"@ {v_act}")
+        p_act = xr_data.get('active_pitch_category', 'ALL')
+        if p_act and p_act != 'ALL':
+            filter_descs.append(f"[{p_act} Pitch]")
+        scope_suffix = f" ({' • '.join(filter_descs)})" if filter_descs else ""
+
         tot_rv = xr_data.get('run_value', 0.0)
         tot_col = "+ " if tot_rv >= 0 else ""
-        fig.suptitle(f"{player_name} — Expected Runs (xR) & Pitch Difficulty Value Audit | Career RAE: {tot_col}{tot_rv:.1f} Runs",
-                     fontsize=12, fontweight='bold', color='#F8FAFC', y=1.02)
+        fig.suptitle(f"{player_name}{scope_suffix} — Expected Runs (xR) & Pitch Par Audit | RAE: {tot_col}{tot_rv:.1f} Runs",
+                     fontsize=11.5, fontweight='bold', color='#F8FAFC', y=1.02)
 
     else:
         # --- BOWLER ---
@@ -4354,10 +4497,25 @@ def plot_xr_pitch_splits(xr_data: dict, player_name: str, show_plot: bool = Fals
             ph_lim = max(abs(min(ph_saved, default=-10)), abs(max(ph_saved, default=10))) * 1.25
             ax3.set_ylim(-max(25, ph_lim), max(25, ph_lim))
 
+        filter_descs = []
+        sel_h = xr_data.get('selected_hands')
+        if sel_h and len(sel_h) < 2:
+            filter_descs.append(f"vs {', '.join(sel_h)}")
+        sel_ph = xr_data.get('selected_phases')
+        if sel_ph and len(sel_ph) < 3:
+            filter_descs.append(f"{', '.join(sel_ph)} Phase")
+        v_act = xr_data.get('active_venue', 'ALL')
+        if v_act and v_act != 'ALL':
+            filter_descs.append(f"@ {v_act}")
+        p_act = xr_data.get('active_pitch_category', 'ALL')
+        if p_act and p_act != 'ALL':
+            filter_descs.append(f"[{p_act} Pitch]")
+        scope_suffix = f" ({' • '.join(filter_descs)})" if filter_descs else ""
+
         tot_s = xr_data.get('runs_saved', 0.0)
         tot_col = "+ " if tot_s >= 0 else ""
-        fig.suptitle(f"{player_name} — Expected Runs Conceded (xRC) & Containment Value | Total Saved: {tot_col}{tot_s:.1f} Runs",
-                     fontsize=12, fontweight='bold', color='#F8FAFC', y=1.02)
+        fig.suptitle(f"{player_name}{scope_suffix} — Expected Runs Conceded (xRC) | Saved: {tot_col}{tot_s:.1f} Runs",
+                     fontsize=11.5, fontweight='bold', color='#F8FAFC', y=1.02)
 
     plt.tight_layout()
     if save_path:

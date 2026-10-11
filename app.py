@@ -446,6 +446,9 @@ def player_expected_runs_api():
     tournament = request.args.get('tournament', 'ALL').strip()
     pitch_category = request.args.get('pitch_category', 'ALL').strip()
     venue = request.args.get('venue', 'ALL').strip()
+    types_raw = request.args.get('types', 'ALL').strip()
+    hands_raw = request.args.get('hands', 'ALL').strip()
+    phases_raw = request.args.get('phases', 'ALL').strip()
 
     cric_name = resolve_player_name(name)
     disp_name = get_player_display_name(cric_name)
@@ -461,7 +464,20 @@ def player_expected_runs_api():
     else:
         eff_role = 'Bowler' if 'bowl' in role else 'Batter'
 
-    xr_data = get_player_expected_runs(cric_name, role=eff_role, tournament=tournament, pitch_category=pitch_category, venue=venue)
+    types_list = [t.strip().upper() for t in types_raw.split(',') if t.strip()] if types_raw and types_raw != 'ALL' else None
+    hands_list = [h.strip().upper() for h in hands_raw.split(',') if h.strip()] if hands_raw and hands_raw != 'ALL' else None
+    phases_list = [p.strip() for p in phases_raw.split(',') if p.strip()] if phases_raw and phases_raw != 'ALL' else None
+
+    xr_data = get_player_expected_runs(
+        cric_name, 
+        role=eff_role, 
+        tournament=tournament, 
+        pitch_category=pitch_category, 
+        venue=venue,
+        bowler_types=types_list,
+        batter_hands=hands_list,
+        phases=phases_list
+    )
     if not xr_data:
         return jsonify({'error': f"Could not compute Expected Runs for '{cric_name}'."}), 404
 
@@ -489,6 +505,8 @@ def player_splits():
     hands_raw = request.args.get('hands', 'ALL').strip()
     phases_raw = request.args.get('phases', 'ALL').strip()
     tournament = request.args.get('tournament', 'ALL').strip()
+    pitch_category = request.args.get('pitch_category', 'ALL').strip()
+    venue = request.args.get('venue', 'ALL').strip()
 
     cric_name = resolve_player_name(name)
     df = get_player_deliveries(cric_name, tournament=tournament)
@@ -505,11 +523,11 @@ def player_splits():
 
     if eff_role == 'bat':
         types_list = [t.strip().upper() for t in types_raw.split(',') if t.strip()] if types_raw and types_raw != 'ALL' else None
-        splits = get_batter_matchup_splits(cric_name, bowler_types=types_list, tournament=tournament)
+        splits = get_batter_matchup_splits(cric_name, bowler_types=types_list, tournament=tournament, pitch_category=pitch_category, venue=venue)
     else:
         hands_list = [h.strip().upper() for h in hands_raw.split(',') if h.strip()] if hands_raw and hands_raw != 'ALL' else None
         phases_list = [p.strip() for p in phases_raw.split(',') if p.strip()] if phases_raw and phases_raw != 'ALL' else None
-        splits = get_bowler_matchup_splits(cric_name, batter_hands=hands_list, phases=phases_list, tournament=tournament)
+        splits = get_bowler_matchup_splits(cric_name, batter_hands=hands_list, phases=phases_list, tournament=tournament, pitch_category=pitch_category, venue=venue)
 
     if splits is None:
         return jsonify({'error': f"Could not generate matchup splits for '{cric_name}'."}), 404

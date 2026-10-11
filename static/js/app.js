@@ -94,6 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Expected Runs (xR) Contextual Filter Controls
   const xrPitchSelect = document.getElementById('xrPitchSelect');
   const xrVenueSelect = document.getElementById('xrVenueSelect');
+  const xrVenueSearchInput = document.getElementById('xrVenueSearchInput');
+  const xrVenueSearchBtn = document.getElementById('xrVenueSearchBtn');
+  const xrVenueSearchClearBtn = document.getElementById('xrVenueSearchClearBtn');
   const xrResetFiltersBtn = document.getElementById('xrResetFiltersBtn');
   const xrFilterStatusText = document.getElementById('xrFilterStatusText');
   const xrVenueTableBody = document.getElementById('xrVenueTableBody');
@@ -108,20 +111,115 @@ document.addEventListener('DOMContentLoaded', () => {
     return isNaN(num) ? fallback : num.toFixed(decimals);
   }
 
+  // Helper to render filtered or full venue select options
+  function renderVenueSelectOptions(venueList, currentSelectedVenue, searchQuery = '') {
+    if (!xrVenueSelect || !venueList) return;
+    let filtered = venueList;
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      filtered = venueList.filter(v => v.venue.toLowerCase().includes(q));
+    }
+
+    let venueOptionsHtml = '';
+    if (q) {
+      venueOptionsHtml += `<option value="ALL">All Matching Stadiums (${filtered.length} found)</option>`;
+    } else {
+      venueOptionsHtml += `<option value="ALL">All Stadiums & Venues (${venueList.length} grounds)</option>`;
+    }
+
+    filtered.forEach(v => {
+      const isSel = (v.venue === currentSelectedVenue) ? 'selected' : '';
+      const matchText = v.matches === 1 ? '1 match' : `${v.matches} matches`;
+      venueOptionsHtml += `<option value="${v.venue}" ${isSel}>${v.venue} (${v.balls} balls · ${matchText} · Par ${v.avg_par})</option>`;
+    });
+
+    if (currentSelectedVenue && currentSelectedVenue !== 'ALL' && !filtered.some(v => v.venue === currentSelectedVenue)) {
+      venueOptionsHtml += `<option value="${currentSelectedVenue}" selected>${currentSelectedVenue} (Selected)</option>`;
+    }
+
+    xrVenueSelect.innerHTML = venueOptionsHtml;
+    xrVenueSelect.value = currentSelectedVenue;
+  }
+
+  function applyVenueSearch() {
+    const q = (xrVenueSearchInput ? xrVenueSearchInput.value : '').trim().toLowerCase();
+    const splits = state.cachedVenueSplits || [];
+    if (!q) {
+      state.xrVenue = 'ALL';
+      if (xrVenueSelect) xrVenueSelect.value = 'ALL';
+    } else {
+      const matches = splits.filter(v => v.venue.toLowerCase().includes(q));
+      if (matches.length > 0) {
+        state.xrVenue = matches[0].venue;
+        if (xrVenueSearchInput) xrVenueSearchInput.value = matches[0].venue;
+      } else {
+        return;
+      }
+    }
+    renderVenueSelectOptions(splits, state.xrVenue, q);
+    const isBowlerMode = (state.xrRole === 'bowl');
+    fetchExpectedRuns(state.currentPlayer, isBowlerMode ? 'bowl' : 'bat', state.xrPitchCategory, state.xrVenue);
+    fetchTacticalSplits();
+  }
+
   // Filter Listeners for xR Card
   if (xrPitchSelect) {
     xrPitchSelect.addEventListener('change', () => {
       state.xrPitchCategory = xrPitchSelect.value;
       const isBowlerMode = (state.xrRole === 'bowl');
       fetchExpectedRuns(state.currentPlayer, isBowlerMode ? 'bowl' : 'bat', state.xrPitchCategory, state.xrVenue);
+      fetchTacticalSplits();
     });
   }
 
   if (xrVenueSelect) {
     xrVenueSelect.addEventListener('change', () => {
       state.xrVenue = xrVenueSelect.value;
+      if (xrVenueSearchInput && xrVenueSelect.value !== 'ALL') {
+        xrVenueSearchInput.value = xrVenueSelect.value;
+        if (xrVenueSearchClearBtn) xrVenueSearchClearBtn.style.display = 'block';
+      } else if (xrVenueSearchInput && xrVenueSelect.value === 'ALL') {
+        xrVenueSearchInput.value = '';
+        if (xrVenueSearchClearBtn) xrVenueSearchClearBtn.style.display = 'none';
+        renderVenueSelectOptions(state.cachedVenueSplits || [], 'ALL', '');
+      }
       const isBowlerMode = (state.xrRole === 'bowl');
       fetchExpectedRuns(state.currentPlayer, isBowlerMode ? 'bowl' : 'bat', state.xrPitchCategory, state.xrVenue);
+      fetchTacticalSplits();
+    });
+  }
+
+  if (xrVenueSearchInput) {
+    xrVenueSearchInput.addEventListener('input', () => {
+      const q = xrVenueSearchInput.value.trim();
+      if (xrVenueSearchClearBtn) {
+        xrVenueSearchClearBtn.style.display = q ? 'block' : 'none';
+      }
+      renderVenueSelectOptions(state.cachedVenueSplits || [], state.xrVenue || 'ALL', q);
+    });
+
+    xrVenueSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyVenueSearch();
+      }
+    });
+  }
+
+  if (xrVenueSearchBtn) {
+    xrVenueSearchBtn.addEventListener('click', applyVenueSearch);
+  }
+
+  if (xrVenueSearchClearBtn) {
+    xrVenueSearchClearBtn.addEventListener('click', () => {
+      if (xrVenueSearchInput) xrVenueSearchInput.value = '';
+      xrVenueSearchClearBtn.style.display = 'none';
+      state.xrVenue = 'ALL';
+      if (xrVenueSelect) xrVenueSelect.value = 'ALL';
+      renderVenueSelectOptions(state.cachedVenueSplits || [], 'ALL', '');
+      const isBowlerMode = (state.xrRole === 'bowl');
+      fetchExpectedRuns(state.currentPlayer, isBowlerMode ? 'bowl' : 'bat', state.xrPitchCategory, 'ALL');
+      fetchTacticalSplits();
     });
   }
 
@@ -131,8 +229,12 @@ document.addEventListener('DOMContentLoaded', () => {
       state.xrVenue = 'ALL';
       if (xrPitchSelect) xrPitchSelect.value = 'ALL';
       if (xrVenueSelect) xrVenueSelect.value = 'ALL';
+      if (xrVenueSearchInput) xrVenueSearchInput.value = '';
+      if (xrVenueSearchClearBtn) xrVenueSearchClearBtn.style.display = 'none';
+      renderVenueSelectOptions(state.cachedVenueSplits || [], 'ALL', '');
       const isBowlerMode = (state.xrRole === 'bowl');
       fetchExpectedRuns(state.currentPlayer, isBowlerMode ? 'bowl' : 'bat', 'ALL', 'ALL');
+      fetchTacticalSplits();
     });
   }
 
@@ -322,6 +424,8 @@ document.addEventListener('DOMContentLoaded', () => {
     state.xrVenue = 'ALL';
     if (xrPitchSelect) xrPitchSelect.value = 'ALL';
     if (xrVenueSelect) xrVenueSelect.value = 'ALL';
+    if (xrVenueSearchInput) xrVenueSearchInput.value = '';
+    if (xrVenueSearchClearBtn) xrVenueSearchClearBtn.style.display = 'none';
 
 
     if (state.currentTab === 'tab-compare') {
@@ -654,7 +758,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const initSp = auditData.initial_splits;
     const initSpRole = initSp ? (initSp.active_role || (initSp.role === 'Bowler' ? 'bowl' : 'bat')) : null;
-    if (initSp && initSpRole === state.splitsRole) {
+    const isCleanFilters = (state.xrPitchCategory === 'ALL' || !state.xrPitchCategory) && (state.xrVenue === 'ALL' || !state.xrVenue);
+    if (initSp && initSpRole === state.splitsRole && isCleanFilters) {
       renderSplitsDashboard(initSp);
     } else {
       fetchTacticalSplits();
@@ -756,6 +861,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       updateBatterPillUI();
       fetchTacticalSplits();
+      fetchExpectedRuns(state.currentPlayer, state.splitsRole === 'bowl' ? 'bowl' : 'bat', state.xrPitchCategory, state.xrVenue);
     });
   }
 
@@ -764,6 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.splitsBowlerTypes = [...ALL_BOWLER_ARCHETYPES];
       updateBatterPillUI();
       fetchTacticalSplits();
+      fetchExpectedRuns(state.currentPlayer, state.splitsRole === 'bowl' ? 'bowl' : 'bat', state.xrPitchCategory, state.xrVenue);
     });
   }
 
@@ -772,6 +879,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.splitsBowlerTypes = ['LAF'];
       updateBatterPillUI();
       fetchTacticalSplits();
+      fetchExpectedRuns(state.currentPlayer, state.splitsRole === 'bowl' ? 'bowl' : 'bat', state.xrPitchCategory, state.xrVenue);
     });
   }
 
@@ -790,6 +898,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       updateBatterPillUI();
       fetchTacticalSplits();
+      fetchExpectedRuns(state.currentPlayer, state.splitsRole === 'bowl' ? 'bowl' : 'bat', state.xrPitchCategory, state.xrVenue);
     });
   });
 
@@ -854,6 +963,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       updateBowlerPillUI();
       fetchTacticalSplits();
+      fetchExpectedRuns(state.currentPlayer, state.splitsRole === 'bowl' ? 'bowl' : 'bat', state.xrPitchCategory, state.xrVenue);
     });
   }
 
@@ -863,6 +973,7 @@ document.addEventListener('DOMContentLoaded', () => {
       state.splitsPhases = [...ALL_PHASES];
       updateBowlerPillUI();
       fetchTacticalSplits();
+      fetchExpectedRuns(state.currentPlayer, state.splitsRole === 'bowl' ? 'bowl' : 'bat', state.xrPitchCategory, state.xrVenue);
     });
   }
 
@@ -881,6 +992,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       updateBowlerPillUI();
       fetchTacticalSplits();
+      fetchExpectedRuns(state.currentPlayer, state.splitsRole === 'bowl' ? 'bowl' : 'bat', state.xrPitchCategory, state.xrVenue);
     });
   });
 
@@ -899,6 +1011,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       updateBowlerPillUI();
       fetchTacticalSplits();
+      fetchExpectedRuns(state.currentPlayer, state.splitsRole === 'bowl' ? 'bowl' : 'bat', state.xrPitchCategory, state.xrVenue);
     });
   });
 
@@ -908,9 +1021,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const typesParam = isBat ? (state.splitsBowlerTypes.length === ALL_BOWLER_ARCHETYPES.length ? 'ALL' : state.splitsBowlerTypes.join(',')) : 'ALL';
     const handsParam = !isBat ? (state.splitsBatterHands.length === ALL_BATTER_HANDS.length ? 'ALL' : state.splitsBatterHands.join(',')) : 'ALL';
     const phasesParam = !isBat ? (state.splitsPhases.length === ALL_PHASES.length ? 'ALL' : state.splitsPhases.join(',')) : 'ALL';
+    const qPitch = state.xrPitchCategory || 'ALL';
+    const qVenue = state.xrVenue || 'ALL';
 
     try {
-      const url = `/api/player/splits?name=${encodeURIComponent(state.currentPlayer)}&role=${state.splitsRole}&tournament=${state.currentTournament}&types=${encodeURIComponent(typesParam)}&hands=${encodeURIComponent(handsParam)}&phases=${encodeURIComponent(phasesParam)}`;
+      const url = `/api/player/splits?name=${encodeURIComponent(state.currentPlayer)}&role=${state.splitsRole}&tournament=${state.currentTournament}&types=${encodeURIComponent(typesParam)}&hands=${encodeURIComponent(handsParam)}&phases=${encodeURIComponent(phasesParam)}&pitch_category=${encodeURIComponent(qPitch)}&venue=${encodeURIComponent(qVenue)}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('Could not fetch tactical matchup splits');
       const data = await res.json();
@@ -932,17 +1047,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. Badge & Subtitle
     if (splitsActiveCountBadge) {
+      const vTag = (state.xrVenue && state.xrVenue !== 'ALL') ? ` @ ${state.xrVenue}` : '';
+      const pTag = (state.xrPitchCategory && state.xrPitchCategory !== 'ALL') ? ` • ${state.xrPitchCategory} Pitch` : '';
+      const filterTail = `${vTag}${pTag}`;
+
       if (isBat) {
         if (data.is_all) {
-          splitsActiveCountBadge.textContent = 'All 8 Bowler Types Active';
+          splitsActiveCountBadge.textContent = `All 8 Styles Active${filterTail}`;
         } else {
-          splitsActiveCountBadge.textContent = `${data.selected_types.length} Types: ${data.selected_types.join(', ')}`;
+          splitsActiveCountBadge.textContent = `${data.selected_types.length} Styles: ${data.selected_types.join(', ')}${filterTail}`;
         }
       } else {
         if (data.is_all) {
-          splitsActiveCountBadge.textContent = 'All Batters & Phases Active';
+          splitsActiveCountBadge.textContent = `All Batters & Phases Active${filterTail}`;
         } else {
-          splitsActiveCountBadge.textContent = `${data.selected_hands.join('+')} • ${data.selected_phases.join('+')}`;
+          splitsActiveCountBadge.textContent = `${data.selected_hands.join('+')} • ${data.selected_phases.join('+')}${filterTail}`;
         }
       }
     }
@@ -1373,14 +1492,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 1. Sync & Populate Venue Select Dropdown
     if (xrVenueSelect && xr.venue_splits) {
+      state.cachedVenueSplits = xr.venue_splits;
       const currentSelectedVenue = state.xrVenue || 'ALL';
-      let venueOptionsHtml = `<option value="ALL">All Stadiums & Venues (${xr.venue_splits.length} grounds)</option>`;
-      xr.venue_splits.forEach(v => {
-        const isSel = (v.venue === currentSelectedVenue) ? 'selected' : '';
-        venueOptionsHtml += `<option value="${v.venue}" ${isSel}>${v.venue} (${v.balls} balls · ${v.matches}m · Par ${v.avg_par})</option>`;
-      });
-      xrVenueSelect.innerHTML = venueOptionsHtml;
-      xrVenueSelect.value = currentSelectedVenue;
+      const currentSearch = xrVenueSearchInput ? xrVenueSearchInput.value.trim() : '';
+      renderVenueSelectOptions(state.cachedVenueSplits, currentSelectedVenue, currentSearch);
     }
 
     // Sync Pitch Select Dropdown
@@ -1398,12 +1513,30 @@ document.addEventListener('DOMContentLoaded', () => {
       };
       const pLabel = pitchDescMap[state.xrPitchCategory] || state.xrPitchCategory;
 
-      if (state.xrPitchCategory === 'ALL' && state.xrVenue === 'ALL') {
+      let matchupLabel = '';
+      if (!isBowlerMode) {
+        if (state.splitsBowlerTypes && state.splitsBowlerTypes.length < ALL_BOWLER_ARCHETYPES.length) {
+          matchupLabel = `vs ${state.splitsBowlerTypes.join(', ')}`;
+        }
+      } else {
+        const partsM = [];
+        if (state.splitsBatterHands && state.splitsBatterHands.length < ALL_BATTER_HANDS.length) {
+          partsM.push(`vs ${state.splitsBatterHands.join('+')}`);
+        }
+        if (state.splitsPhases && state.splitsPhases.length < ALL_PHASES.length) {
+          partsM.push(`${state.splitsPhases.join('+')} Phase`);
+        }
+        matchupLabel = partsM.join(' • ');
+      }
+
+      const parts = [];
+      if (matchupLabel) parts.push(matchupLabel);
+      if (state.xrPitchCategory !== 'ALL') parts.push(pLabel);
+      if (state.xrVenue !== 'ALL') parts.push('@ ' + state.xrVenue);
+
+      if (parts.length === 0) {
         xrFilterStatusText.textContent = `Overall Career Baseline (${(xr.total_balls || 0).toLocaleString()} balls across all pitches & grounds)`;
       } else {
-        const parts = [];
-        if (state.xrPitchCategory !== 'ALL') parts.push(pLabel);
-        if (state.xrVenue !== 'ALL') parts.push('@ ' + state.xrVenue);
         xrFilterStatusText.textContent = `Filtered View: ${parts.join(' ')} — ${(xr.total_balls || 0).toLocaleString()} balls sample`;
       }
     }
@@ -1411,12 +1544,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Render Empty Notice if 0 balls
     if ((xr.total_balls || 0) === 0) {
       if (kpiGrid) {
+        let opponentDesc = '';
+        if (!isBowlerMode && state.splitsBowlerTypes && state.splitsBowlerTypes.length < ALL_BOWLER_ARCHETYPES.length) {
+          opponentDesc = ` vs ${state.splitsBowlerTypes.join(', ')}`;
+        } else if (isBowlerMode) {
+          opponentDesc = ` vs ${state.splitsBatterHands.join('+')} (${state.splitsPhases.join('+')})`;
+        }
         kpiGrid.innerHTML = `
           <div class="xr-empty-notice">
             <div style="font-weight:700; font-size:1rem; margin-bottom:6px;">⚠️ No Deliveries Recorded For This Combination</div>
-            <div>No balls found for <strong>${playerName}</strong> on <strong>${state.xrPitchCategory}</strong> pitches at <strong>${state.xrVenue}</strong>.</div>
+            <div>No balls found for <strong>${playerName}</strong>${opponentDesc} on <strong>${state.xrPitchCategory}</strong> pitches at <strong>${state.xrVenue}</strong>.</div>
             <div style="margin-top:12px;">
-              <button class="reset-filter-btn" id="btnResetXrEmpty" style="margin:0 auto;">↺ Reset to Career Baseline</button>
+              <button class="reset-filter-btn" id="btnResetXrEmpty" style="margin:0 auto;">↺ Reset Filters</button>
             </div>
           </div>
         `;
@@ -1427,7 +1566,11 @@ document.addEventListener('DOMContentLoaded', () => {
             state.xrVenue = 'ALL';
             if (xrPitchSelect) xrPitchSelect.value = 'ALL';
             if (xrVenueSelect) xrVenueSelect.value = 'ALL';
+            if (xrVenueSearchInput) xrVenueSearchInput.value = '';
+            if (xrVenueSearchClearBtn) xrVenueSearchClearBtn.style.display = 'none';
+            renderVenueSelectOptions(state.cachedVenueSplits || [], 'ALL', '');
             fetchExpectedRuns(state.currentPlayer, isBowlerMode ? 'bowl' : 'bat', 'ALL', 'ALL');
+            fetchTacticalSplits();
           });
         }
       }
@@ -1581,6 +1724,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           if (xrPitchSelect) xrPitchSelect.value = state.xrPitchCategory;
           fetchExpectedRuns(state.currentPlayer, isBowlerMode ? 'bowl' : 'bat', state.xrPitchCategory, state.xrVenue);
+          fetchTacticalSplits();
         });
       });
     }
@@ -1658,7 +1802,11 @@ document.addEventListener('DOMContentLoaded', () => {
           spotlightClearVenueBtn.onclick = () => {
             state.xrVenue = 'ALL';
             if (xrVenueSelect) xrVenueSelect.value = 'ALL';
+            if (xrVenueSearchInput) xrVenueSearchInput.value = '';
+            if (xrVenueSearchClearBtn) xrVenueSearchClearBtn.style.display = 'none';
+            renderVenueSelectOptions(state.cachedVenueSplits || [], 'ALL', '');
             fetchExpectedRuns(state.currentPlayer, isBowlerMode ? 'bowl' : 'bat', state.xrPitchCategory, 'ALL');
+            fetchTacticalSplits();
           };
         }
       }
@@ -1672,7 +1820,12 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const qPitch = pitchCategory || 'ALL';
       const qVenue = venue || 'ALL';
-      const res = await fetch(`/api/player/xr?name=${encodeURIComponent(playerName)}&role=${role}&tournament=${state.currentTournament}&pitch_category=${encodeURIComponent(qPitch)}&venue=${encodeURIComponent(qVenue)}`);
+      const isBat = (role !== 'bowl');
+      const typesParam = isBat ? (state.splitsBowlerTypes.length === ALL_BOWLER_ARCHETYPES.length ? 'ALL' : state.splitsBowlerTypes.join(',')) : 'ALL';
+      const handsParam = !isBat ? (state.splitsBatterHands.length === ALL_BATTER_HANDS.length ? 'ALL' : state.splitsBatterHands.join(',')) : 'ALL';
+      const phasesParam = !isBat ? (state.splitsPhases.length === ALL_PHASES.length ? 'ALL' : state.splitsPhases.join(',')) : 'ALL';
+
+      const res = await fetch(`/api/player/xr?name=${encodeURIComponent(playerName)}&role=${role}&tournament=${state.currentTournament}&pitch_category=${encodeURIComponent(qPitch)}&venue=${encodeURIComponent(qVenue)}&types=${encodeURIComponent(typesParam)}&hands=${encodeURIComponent(handsParam)}&phases=${encodeURIComponent(phasesParam)}`);
       if (!res.ok) return;
       const data = await res.json();
       updateExpectedRunsDisplay(data, role === 'bowl', playerName);

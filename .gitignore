@@ -16,6 +16,8 @@ data/*.db
 data/*.sqlite
 data/*.sqlite3
 data/*.csv
+data/*.zip
+data/zips/
 data/leagues/
 
 # Jupyter Notebook checkpoints
@@ -33,4 +35,5 @@ desktop.ini
 # Logs & temp files
 *.log
 scratch/*.png
+scratch/*.json
 scratch/__pycache__/
