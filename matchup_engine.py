@@ -2278,10 +2278,17 @@ _PACE_P6 = _PC_6 / _PC_6.sum()
 _PACE_P4 = _PC_4 / _PC_4.sum()
 _PACE_P1 = _PC_1 / _PC_1.sum()
 
+# Dismissal sector probability distribution weights:
+# [Cover, Point, Third Man, Fine Leg, Square Leg, Midwicket, Long On, Long Off]
+_OUT_PACE = np.array([0.12, 0.10, 0.24, 0.14, 0.10, 0.14, 0.09, 0.07])
+_OUT_SPIN = np.array([0.12, 0.05, 0.03, 0.04, 0.08, 0.32, 0.22, 0.14])
+_OUT_PACE_P = _OUT_PACE / _OUT_PACE.sum()
+_OUT_SPIN_P = _OUT_SPIN / _OUT_SPIN.sum()
+
 
 def get_batter_wagon_data(player_name: str, vs_bowler_type: str = 'ALL', phase: str = 'ALL', tournament: str = 'ALL') -> dict:
     """
-    Computes sector run distribution and simulated shot trajectories for a batsman.
+    Computes sector run distribution, dismissal hazard zones, and simulated shot trajectories for a batsman.
     Supports filtering by bowler archetype ('PACE', 'SPIN', 'LAF', 'SLA', 'WRIST_SPIN', etc.)
     and match phase ('Powerplay', 'Middle', 'Death').
     """
@@ -2335,65 +2342,143 @@ def get_batter_wagon_data(player_name: str, vs_bowler_type: str = 'ALL', phase: 
     sector_fours = {s['short']: 0 for s in SECTORS_LAYOUT}
     sector_sixes = {s['short']: 0 for s in SECTORS_LAYOUT}
     sector_balls = {s['short']: 0 for s in SECTORS_LAYOUT}
+    sector_outs = {s['short']: 0 for s in SECTORS_LAYOUT}
     sector_shots = []
+    dismissal_shots = []
 
     for _, row in df.iterrows():
         r = int(row['runs_off_bat'])
-        if r == 0:
-            continue
-
+        is_w = int(row.get('is_wicket') or 0)
         arch = str(row['bowler_archetype'])
         is_spin = arch in ['OFF_SPIN', 'SLA', 'WRIST_SPIN', 'LEFT_WRIST_SPIN']
+        phase_str = str(row.get('phase') or 'Middle')
 
-        if r == 6:
-            probs = _SPIN_P6 if is_spin else _PACE_P6
-        elif r == 4:
-            probs = _SPIN_P4 if is_spin else _PACE_P4
-        else:
-            probs = _SPIN_P1 if is_spin else _PACE_P1
+        # 1. Scoring shots processing
+        if r > 0:
+            if r == 6:
+                probs = _SPIN_P6 if is_spin else _PACE_P6
+            elif r == 4:
+                probs = _SPIN_P4 if is_spin else _PACE_P4
+            else:
+                probs = _SPIN_P1 if is_spin else _PACE_P1
 
-        sec_idx = np.random.choice(len(SECTORS_LAYOUT), p=probs)
-        sec = SECTORS_LAYOUT[sec_idx]
-        s_short = sec['short']
+            sec_idx = np.random.choice(len(SECTORS_LAYOUT), p=probs)
+            sec = SECTORS_LAYOUT[sec_idx]
+            s_short = sec['short']
 
-        sector_runs[s_short] += r
-        sector_balls[s_short] += 1
-        if r == 4:
-            sector_fours[s_short] += 1
-        elif r == 6:
-            sector_sixes[s_short] += 1
+            sector_runs[s_short] += r
+            sector_balls[s_short] += 1
+            if r == 4:
+                sector_fours[s_short] += 1
+            elif r == 6:
+                sector_sixes[s_short] += 1
 
-        ang_min, ang_max = sec['ang_range']
-        if ang_min > ang_max:
-            ang = np.random.uniform(ang_min, ang_min + 45.0) % 360.0
-        else:
-            ang = np.random.uniform(ang_min, ang_max)
+            ang_min, ang_max = sec['ang_range']
+            if ang_min > ang_max:
+                ang = np.random.uniform(ang_min, ang_min + 45.0) % 360.0
+            else:
+                ang = np.random.uniform(ang_min, ang_max)
 
-        if is_lhb:
-            ang = (180.0 - ang) % 360.0
+            if is_lhb:
+                ang = (180.0 - ang) % 360.0
 
-        if r == 6:
-            dist = np.random.uniform(77.0, 91.0)
-        elif r == 4:
-            dist = np.random.uniform(67.0, 75.0)
-        elif r in [2, 3]:
-            dist = np.random.uniform(38.0, 56.0)
-        else:
-            dist = np.random.uniform(18.0, 36.0)
+            if r == 6:
+                dist = np.random.uniform(77.0, 91.0)
+            elif r == 4:
+                dist = np.random.uniform(67.0, 75.0)
+            elif r in [2, 3]:
+                dist = np.random.uniform(38.0, 56.0)
+            else:
+                dist = np.random.uniform(18.0, 36.0)
 
-        sector_shots.append({
-            'runs': r,
-            'angle': ang,
-            'dist': dist,
-            'sector': s_short,
-            'is_spin': is_spin
-        })
+            sector_shots.append({
+                'runs': r,
+                'angle': ang,
+                'dist': dist,
+                'sector': s_short,
+                'is_spin': is_spin
+            })
+
+        # 2. Dismissals processing (is_wicket == 1)
+        if is_w == 1:
+            w_type = str(row.get('wicket_type') or 'caught').lower()
+            if w_type in ['bowled', 'lbw', 'hit wicket']:
+                probs_w = np.array([0.05, 0.10, 0.10, 0.10, 0.15, 0.15, 0.20, 0.15])
+                probs_w = probs_w / probs_w.sum()
+                sec_idx = np.random.choice(len(SECTORS_LAYOUT), p=probs_w)
+                sec = SECTORS_LAYOUT[sec_idx]
+                s_short = sec['short']
+                sector_outs[s_short] += 1
+                dist = np.random.uniform(7.0, 16.0)
+                ang_min, ang_max = sec['ang_range']
+                ang = (np.random.uniform(ang_min, ang_min + 45.0) % 360.0) if ang_min > ang_max else np.random.uniform(ang_min, ang_max)
+            elif w_type == 'stumped':
+                s_short = 'Third Man' if np.random.rand() > 0.4 else 'Fine Leg'
+                sector_outs[s_short] += 1
+                sec = next(item for item in SECTORS_LAYOUT if item['short'] == s_short)
+                dist = np.random.uniform(10.0, 18.0)
+                ang_min, ang_max = sec['ang_range']
+                ang = (np.random.uniform(ang_min, ang_min + 45.0) % 360.0) if ang_min > ang_max else np.random.uniform(ang_min, ang_max)
+            elif w_type == 'caught and bowled':
+                s_short = 'Long On' if np.random.rand() > 0.5 else 'Long Off'
+                sector_outs[s_short] += 1
+                sec = next(item for item in SECTORS_LAYOUT if item['short'] == s_short)
+                dist = np.random.uniform(14.0, 24.0)
+                ang_min, ang_max = sec['ang_range']
+                ang = (np.random.uniform(ang_min, ang_min + 45.0) % 360.0) if ang_min > ang_max else np.random.uniform(ang_min, ang_max)
+            else:
+                probs_w = _OUT_SPIN_P if is_spin else _OUT_PACE_P
+                sec_idx = np.random.choice(len(SECTORS_LAYOUT), p=probs_w)
+                sec = SECTORS_LAYOUT[sec_idx]
+                s_short = sec['short']
+                sector_outs[s_short] += 1
+
+                if s_short == 'Third Man':
+                    dist = np.random.uniform(14.0, 32.0)
+                elif phase_str == 'Powerplay':
+                    dist = np.random.uniform(20.0, 36.0)
+                elif phase_str in ['Middle', 'Death']:
+                    dist = np.random.uniform(56.0, 72.0)
+                else:
+                    dist = np.random.uniform(32.0, 65.0)
+
+                ang_min, ang_max = sec['ang_range']
+                ang = (np.random.uniform(ang_min, ang_min + 45.0) % 360.0) if ang_min > ang_max else np.random.uniform(ang_min, ang_max)
+
+            if is_lhb:
+                ang = (180.0 - ang) % 360.0
+
+            dismissal_shots.append({
+                'angle': ang,
+                'dist': dist,
+                'sector': s_short,
+                'wicket_type': w_type,
+                'bowler': str(row.get('bowler') or ''),
+                'phase': phase_str
+            })
 
     summary_rows = []
     for s in SECTORS_LAYOUT:
         sn = s['short']
         r_sum = sector_runs[sn]
         pct = (r_sum / max(1, total_runs)) * 100.0
+        outs = sector_outs[sn]
+        bnd = sector_fours[sn] + sector_sixes[sn]
+        rpo = round(r_sum / max(1, outs), 1) if outs > 0 else float(r_sum)
+
+        if outs >= 3 and (outs / max(1, total_outs)) >= 0.20:
+            risk_label = "⚠️ Primary Trap"
+            risk_class = "danger"
+        elif outs >= 2 and rpo < 25.0:
+            risk_label = "⚠️ High Hazard"
+            risk_class = "warning"
+        elif outs == 0 and r_sum >= 50:
+            risk_label = "🛡️ Safe Zone"
+            risk_class = "safe"
+        else:
+            risk_label = "Standard"
+            risk_class = "neutral"
+
         summary_rows.append({
             'Sector': sn,
             'FullName': s['name'],
@@ -2401,10 +2486,26 @@ def get_batter_wagon_data(player_name: str, vs_bowler_type: str = 'ALL', phase: 
             'Run_Pct': round(pct, 1),
             'Fours': sector_fours[sn],
             'Sixes': sector_sixes[sn],
+            'Boundaries': bnd,
+            'Dismissals': outs,
+            'Runs_Per_Out': rpo,
+            'Risk_Label': risk_label,
+            'Risk_Class': risk_class,
             'Color': s['color']
         })
 
     summary_df = pd.DataFrame(summary_rows).sort_values('Runs', ascending=False)
+
+    max_outs_row = summary_df.sort_values(by=['Dismissals', 'Runs'], ascending=[False, False]).iloc[0]
+    trap_sector = None
+    if max_outs_row['Dismissals'] > 0:
+        trap_sector = {
+            'short': max_outs_row['Sector'],
+            'full_name': max_outs_row['FullName'],
+            'outs': int(max_outs_row['Dismissals']),
+            'runs': int(max_outs_row['Runs']),
+            'rpo': float(max_outs_row['Runs_Per_Out'])
+        }
 
     return {
         'player_name': cric_name,
@@ -2420,13 +2521,15 @@ def get_batter_wagon_data(player_name: str, vs_bowler_type: str = 'ALL', phase: 
         'overall_sr': overall_sr,
         'is_lhb': is_lhb,
         'summary': summary_df,
-        'shots': sector_shots
+        'shots': sector_shots,
+        'dismissals': dismissal_shots,
+        'trap_sector': trap_sector
     }
 
 
 def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase: str = 'ALL', tournament: str = 'ALL', show_plot: bool = True, save_path: str = None):
     """
-    Renders an interactive Wagon Wheel for a batsman with percentage of runs scored in each sector.
+    Renders an interactive Wagon Wheel for a batsman with percentage of runs scored in each sector and dismissal trap markers.
     Allows filtering by bowler archetype ('PACE', 'SPIN', 'LAF', 'SLA', 'WRIST_SPIN', etc.)
     and match phase ('Powerplay', 'Middle', 'Death').
     """
@@ -2460,15 +2563,17 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase
 
     print("=" * 88)
     print(f"[*] PRO WAGON WHEEL AUDIT: {full_name.upper()} ({stance}) | {scope_str}")
-    print(f"Tournament: {tournament} | Runs: {t_runs} | Balls: {t_balls} | SR: {sr} | Dots: {dot_pct}% | Boundaries: {bnd_pct}%")
+    print(f"Tournament: {tournament} | Runs: {t_runs} | Balls: {t_balls} | SR: {sr} | Dots: {dot_pct}% | Boundaries: {bnd_pct}% | Outs: {data['total_outs']}")
     print("=" * 88)
-    print(f"{'Sector':<12} | {'Field Region':<25} | {'Runs':<6} | {'% Runs':<8} | {'4s':<4} | {'6s':<4}")
+    print(f"{'Sector':<12} | {'Field Region':<25} | {'Runs':<6} | {'% Runs':<8} | {'Outs':<5} | {'Avg':<6}")
     print("-" * 75)
     for _, r in data['summary'].iterrows():
-        print(f"{r['Sector']:<12} | {r['FullName']:<25} | {int(r['Runs']):<6} | {r['Run_Pct']:<7.1f}% | {int(r['Fours']):<4} | {int(r['Sixes']):<4}")
+        print(f"{r['Sector']:<12} | {r['FullName']:<25} | {int(r['Runs']):<6} | {r['Run_Pct']:<7.1f}% | {int(r['Dismissals']):<5} | {r['Runs_Per_Out']:<6.1f}")
     print("-" * 88)
     top_sec = data['summary'].iloc[0]
     print(f"[+] Dominant Scoring Zone: {top_sec['FullName']} ({top_sec['Run_Pct']}% of runs | {top_sec['Runs']} Runs)")
+    if data.get('trap_sector'):
+        print(f"[!] Primary Trap / Hazard Zone: {data['trap_sector']['full_name']} ({data['trap_sector']['outs']} Outs • Avg {data['trap_sector']['rpo']:.1f})")
     print("=" * 88 + "\n")
 
     if not show_plot and not save_path:
@@ -2482,7 +2587,7 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase
     ax2 = fig.add_subplot(gs[1])
 
     # ---------------------------------------------------------
-    # PANEL 1: CLEAN CRICKET FIELD WAGON WHEEL
+    # PANEL 1: CLEAN CRICKET FIELD WAGON WHEEL & HAZARDS
     # ---------------------------------------------------------
     ax1.set_facecolor('#0B0F19')
     radius = 75.0
@@ -2514,16 +2619,10 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase
         y = radius * np.sin(rad)
         ax1.plot([0, x], [0, y], color='#1E293B', ls=':', lw=0.7, alpha=0.5, zorder=2)
 
-    # Clean, uncongested shot trajectory rendering representing majority scoring zones
-    shots = data['shots']
-    summary = data['summary']
-
     # Clean, uncongested shot trajectory rendering
     shots = data['shots']
     summary = data['summary']
 
-    # Proportional sampling: boundaries and majority running singles/doubles
-    # Singles represent the true volume majority of ground shots
     target_fours = 32
     target_sixes = 18
     target_singles = 65
@@ -2542,7 +2641,6 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase
         n_6 = max(1 if len(sec_6s) > 0 and pct > 0.05 else 0, int(round(target_sixes * pct)))
         n_4 = max(1 if len(sec_4s) > 0 and pct > 0.05 else 0, int(round(target_fours * pct)))
 
-        # Sample majority of singles proportional to sector strike-rotation volume
         single_share = len(sec_1s) / max(1, total_singles_in_data)
         n_1 = max(2 if len(sec_1s) >= 2 else (1 if len(sec_1s) == 1 else 0), int(round(target_singles * single_share)))
 
@@ -2574,14 +2672,32 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase
             ty = d_plot * np.sin(rad)
             ax1.plot([0, tx], [-7.0, ty], color='#F59E0B', alpha=0.80, lw=1.1, zorder=5)
             ax1.scatter([tx], [ty], marker='o', color='#F59E0B', s=12, ec='#FEF08A', lw=0.3, zorder=7)
-        else: # 1s/2s/3s ground running shots - Pure Crisp White with gleaming white dots
+        else:
             d_plot = min(dist, radius * 0.76)
             tx = d_plot * np.cos(rad)
             ty = d_plot * np.sin(rad)
             ax1.plot([0, tx], [-7.0, ty], color='#FFFFFF', alpha=0.85, lw=1.1, zorder=4)
             ax1.scatter([tx], [ty], marker='o', color='#FFFFFF', s=10, ec='#94A3B8', lw=0.4, alpha=0.95, zorder=6)
 
-    # Perimeter Sector Labels (Clean typography without boxes)
+    # Plot Dismissal Hazard Markers (Red Crosses)
+    d_shots = data.get('dismissals', [])
+    if len(d_shots) > 0:
+        max_d_sample = 36
+        if len(d_shots) > max_d_sample:
+            sample_d = list(np.random.choice(d_shots, size=max_d_sample, replace=False))
+        else:
+            sample_d = d_shots
+
+        for dm in sample_d:
+            ang = dm['angle']
+            dist = dm['dist']
+            rad = np.radians(ang)
+            tx = dist * np.cos(rad)
+            ty = dist * np.sin(rad)
+            ax1.scatter([tx], [ty], marker='x', color='#FDA4AF', s=54, lw=2.6, alpha=0.35, zorder=9)
+            ax1.scatter([tx], [ty], marker='x', color='#F43F5E', s=36, lw=1.8, zorder=10)
+
+    # Perimeter Sector Labels
     for _, s_row in data['summary'].iterrows():
         s_short = s_row['Sector']
         match_sec = next(item for item in SECTORS_LAYOUT if item['short'] == s_short)
@@ -2596,27 +2712,31 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase
         sec_name = s_short.title()
         pct_val = f"{s_row['Run_Pct']:.1f}%"
         runs_val = f"{int(s_row['Runs'])}r"
+        outs_num = int(s_row['Dismissals'])
+        outs_color = '#FB7185' if outs_num >= 3 else '#94A3B8'
 
-        ax1.text(lx, ly + 1.8, sec_name, ha='center', va='center', fontsize=8.5, fontweight='bold', color='#E2E8F0', zorder=12)
-        ax1.text(lx, ly - 2.2, f"{pct_val} • {runs_val}", ha='center', va='center', fontsize=7.2, color='#94A3B8', zorder=12)
+        ax1.text(lx, ly + 2.8, sec_name, ha='center', va='center', fontsize=8.5, fontweight='bold', color='#E2E8F0', zorder=12)
+        ax1.text(lx, ly - 0.4, f"{pct_val} • {runs_val}", ha='center', va='center', fontsize=7.2, color='#94A3B8', zorder=12)
+        ax1.text(lx, ly - 3.4, f"✖ {outs_num} Outs", ha='center', va='center', fontsize=7.0, fontweight='bold' if outs_num >= 3 else 'normal', color=outs_color, zorder=12)
 
-    # Field Orientation Subtitle
+    # Field Orientation Subtitle & Legend
     side_text = "← Off Side        |        Leg Side →" if not data['is_lhb'] else "← Leg Side        |        Off Side →"
-    ax1.text(0, -radius * 1.25, side_text, ha='center', va='center', color='#64748B', fontsize=7.8)
-    ax1.text(0, -radius * 1.35, "Representative majority scoring trajectories shown  •  Sector cards & breakdown reflect 100% full career data", ha='center', va='center', color='#64748B', fontsize=6.8, style='italic')
+    ax1.text(0, -radius * 1.22, side_text, ha='center', va='center', color='#64748B', fontsize=7.8)
+    ax1.text(0, -radius * 1.32, "● 1s/2s (White)   •   ● 4s (Gold)   •   ● 6s (Pink)   •   ✖ Dismissal / Out (Red)", ha='center', va='center', color='#F1F5F9', fontsize=7.4, fontweight='bold')
+    ax1.text(0, -radius * 1.40, "Representative sample shown on turf  •  Perimeter labels & sector table reflect 100% full career data", ha='center', va='center', color='#64748B', fontsize=6.8, style='italic')
 
     ax1.set_xlim(-radius * 1.48, radius * 1.48)
     ax1.set_ylim(-radius * 1.48, radius * 1.48)
     ax1.set_aspect('equal')
     ax1.axis('off')
 
-    ax1.text(0, radius * 1.34, f"{full_name} ({stance}) — Wagon Wheel", ha='center', va='bottom',
+    ax1.text(0, radius * 1.35, f"{full_name} ({stance}) — Pro Wagon Wheel & Hazard Map", ha='center', va='bottom',
              fontsize=12, fontweight='bold', color='#F8FAFC')
-    ax1.text(0, radius * 1.25, f"{scope_str}  •  {t_runs:,} Runs ({t_balls:,}b)  •  {data['total_fours']}x4, {data['total_sixes']}x6  •  {sr:.1f} SR",
-             ha='center', va='bottom', fontsize=8.8, color='#94A3B8')
+    ax1.text(0, radius * 1.25, f"{scope_str}  •  {t_runs:,} Runs ({t_balls:,}b)  •  {data['total_fours']}x4, {data['total_sixes']}x6  •  {sr:.1f} SR  •  {data['total_outs']} Outs",
+             ha='center', va='bottom', fontsize=8.5, color='#94A3B8')
 
     # ---------------------------------------------------------
-    # PANEL 2: SECTOR BREAKDOWN CARD
+    # PANEL 2: SECTOR BREAKDOWN CARD WITH DISMISSALS
     # ---------------------------------------------------------
     ax2.set_facecolor('#111827')
     for spine in ax2.spines.values():
@@ -2628,32 +2748,33 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase
     df_sorted = data['summary'].sort_values('Run_Pct', ascending=True)
     y_pos = np.arange(len(df_sorted))
 
-    # Gradient: lower volume slate to vibrant cyan for dominant scoring zones
     n = len(df_sorted)
     colors = []
     for i in range(n):
         if i >= n - 2:
-            colors.append('#38BDF8') # Primary scoring sectors
+            colors.append('#38BDF8')
         elif i >= n - 4:
-            colors.append('#60A5FA') # Secondary scoring sectors
+            colors.append('#60A5FA')
         else:
-            colors.append('#64748B') # Lower volume sectors
+            colors.append('#64748B')
 
     bars = ax2.barh(y_pos, df_sorted['Run_Pct'], color=colors, height=0.55, zorder=2)
 
     ax2.set_yticks(y_pos)
     ax2.set_yticklabels(df_sorted['Sector'], fontsize=9, fontweight='medium', color='#F1F5F9')
     ax2.set_xlabel('Percentage of Total Runs Scored (%)', fontsize=8.5, color='#94A3B8', labelpad=8)
-    ax2.set_title('Run Scoring Distribution by Sector', fontsize=11, fontweight='bold', color='#F8FAFC', pad=14, loc='left')
+    ax2.set_title('Run Scoring Distribution & Wickets by Sector', fontsize=11, fontweight='bold', color='#F8FAFC', pad=14, loc='left')
 
     for i, (_, r) in enumerate(df_sorted.iterrows()):
         fours_txt = f"{int(r['Fours'])}x4"
         sixes_txt = f", {int(r['Sixes'])}x6" if int(r['Sixes']) > 0 else ""
-        label_str = f" {r['Run_Pct']:.1f}%  ({int(r['Runs'])} runs • {fours_txt}{sixes_txt})"
+        outs_num = int(r['Dismissals'])
+        outs_txt = f" • ✖ {outs_num} outs" if outs_num > 0 else " • 0 outs"
+        label_str = f" {r['Run_Pct']:.1f}%  ({int(r['Runs'])}r • {fours_txt}{sixes_txt}{outs_txt})"
         ax2.text(r['Run_Pct'] + 0.5, i, label_str, va='center', fontsize=8, color='#E2E8F0', fontweight='medium', zorder=3)
 
     max_pct = df_sorted['Run_Pct'].max()
-    ax2.set_xlim(0, max(32.0, max_pct * 1.35))
+    ax2.set_xlim(0, max(34.0, max_pct * 1.40))
     ax2.grid(axis='x', color='#1F2937', linestyle=':', alpha=0.6, zorder=0)
     ax2.tick_params(axis='x', colors='#94A3B8', labelsize=8)
     ax2.tick_params(axis='y', length=0)
@@ -2661,7 +2782,8 @@ def plot_batter_wagon_wheel(player_name: str, vs_bowler_type: str = 'ALL', phase
     legend_elements = [
         Line2D([0], [0], color='#F43F5E', marker='o', linestyle='None', markersize=6, label='Six (6)'),
         Line2D([0], [0], color='#F59E0B', marker='o', linestyle='None', markersize=5, label='Four (4)'),
-        Line2D([0], [0], color='#FFFFFF', marker='o', linestyle='-', markersize=4, lw=1.3, label='1s / 2s / 3s')
+        Line2D([0], [0], color='#FFFFFF', marker='o', linestyle='-', markersize=4, lw=1.3, label='1s / 2s / 3s'),
+        Line2D([0], [0], color='#F43F5E', marker='x', linestyle='None', markersize=6, markeredgewidth=1.8, label='Dismissal / Out')
     ]
     ax2.legend(handles=legend_elements, loc='lower right', facecolor='#1F2937', edgecolor='#374151',
                labelcolor='#D1D5DB', fontsize=8, framealpha=0.9)

@@ -1896,7 +1896,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (data.dominant_sector) {
-      document.getElementById('wagonDominantBadge').textContent = `Dominant: ${data.dominant_sector.FullName || ''} (${fmt(data.dominant_sector.Run_Pct, 1)}%)`;
+      document.getElementById('wagonDominantBadge').textContent = `Dominant: ${data.dominant_sector.FullName || data.dominant_sector.Sector || ''} (${fmt(data.dominant_sector.Run_Pct, 1)}%)`;
+    }
+
+    const trapBadge = document.getElementById('wagonTrapBadge');
+    if (trapBadge) {
+      if (data.trap_sector && data.trap_sector.outs > 0) {
+        trapBadge.style.display = 'inline-block';
+        trapBadge.textContent = `⚠️ Trap Zone: ${data.trap_sector.short} (${data.trap_sector.outs} Outs · Avg ${fmt(data.trap_sector.rpo, 1)})`;
+      } else {
+        trapBadge.style.display = 'none';
+      }
     }
 
     // 3. Quick Stats
@@ -1904,25 +1914,50 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('wStatBalls').textContent = (data.total_balls || 0).toLocaleString();
     document.getElementById('wStatSR').textContent = fmt(data.overall_sr, 1);
     
+    const outsEl = document.getElementById('wStatOuts');
+    if (outsEl) {
+      outsEl.textContent = (data.total_outs || 0).toLocaleString();
+    }
+    
     const dotPct = fmt(((data.total_dots || 0) * 100) / Math.max(1, data.total_balls || 1), 1);
     const bndPct = fmt((((data.total_fours || 0) + (data.total_sixes || 0)) * 100) / Math.max(1, data.total_balls || 1), 1);
     document.getElementById('wStatDots').textContent = `${dotPct}%`;
     document.getElementById('wStatBnd').textContent = `${bndPct}%`;
 
-    // 4. Sector Table
+    // 4. Sector Table with Dismissals & Hazard Profile
     const tbody = document.getElementById('wagonSectorBody');
-    tbody.innerHTML = (data.summary || []).map(r => `
-      <tr>
-        <td>
-          <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${r.Color}; margin-right:8px;"></span>
-          <strong>${r.Sector}</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(${r.FullName})</span>
-        </td>
-        <td>${Math.round(r.Runs || 0)}</td>
-        <td><strong>${fmt(r.Run_Pct, 1)}%</strong></td>
-        <td>${r.Fours || 0}</td>
-        <td>${r.Sixes || 0}</td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = (data.summary || []).map(r => {
+      const isTrap = r.Risk_Class === 'danger';
+      const isSafe = r.Risk_Class === 'safe';
+      const isWarning = r.Risk_Class === 'warning';
+      
+      let tagHtml = `<span style="color:var(--text-muted); font-size:0.75rem;">Standard</span>`;
+      if (isTrap) {
+        tagHtml = `<span style="background:rgba(244,63,94,0.15); color:#FB7185; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600; border:1px solid rgba(244,63,94,0.3);">⚠️ Primary Trap</span>`;
+      } else if (isWarning) {
+        tagHtml = `<span style="background:rgba(245,158,11,0.15); color:#FBBF24; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600; border:1px solid rgba(245,158,11,0.3);">⚠️ High Hazard</span>`;
+      } else if (isSafe) {
+        tagHtml = `<span style="background:rgba(16,185,129,0.15); color:#34D399; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600; border:1px solid rgba(16,185,129,0.3);">🛡️ Safe Zone</span>`;
+      }
+      
+      const outsColor = r.Dismissals > 0 ? (r.Dismissals >= 3 ? '#FB7185' : '#FBBF24') : 'var(--text-muted)';
+      const rpoText = r.Dismissals > 0 ? fmt(r.Runs_Per_Out, 1) : '<span style="color:var(--text-muted);">Never Out</span>';
+
+      return `
+        <tr ${isTrap ? 'style="background:rgba(244,63,94,0.05);"' : ''}>
+          <td>
+            <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${r.Color}; margin-right:8px;"></span>
+            <strong>${r.Sector}</strong> <span style="font-size:0.75rem; color:var(--text-muted);">(${r.FullName})</span>
+          </td>
+          <td><strong>${Math.round(r.Runs || 0)}</strong></td>
+          <td><strong>${fmt(r.Run_Pct, 1)}%</strong></td>
+          <td>${r.Fours || 0}x4, ${r.Sixes || 0}x6</td>
+          <td><strong style="color:${outsColor};">${r.Dismissals || 0}</strong></td>
+          <td><strong>${rpoText}</strong></td>
+          <td>${tagHtml}</td>
+        </tr>
+      `;
+    }).join('');
   }
 
   // ==========================================================================

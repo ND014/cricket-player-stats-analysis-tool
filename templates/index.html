@@ -551,7 +551,10 @@
           <div class="visual-canvas-card">
             <div class="card-header">
               <h3 class="card-title" id="wagonVisualTitle">Wagon Wheel Visual Map</h3>
-              <span class="header-tag" id="wagonDominantBadge">Dominant: Midwicket</span>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <span class="header-tag" id="wagonDominantBadge">Dominant: Midwicket</span>
+                <span class="header-tag" id="wagonTrapBadge" style="display:none; background:rgba(244,63,94,0.15); color:#FB7185; border:1px solid rgba(244,63,94,0.3);">⚠️ Trap Zone: --</span>
+              </div>
             </div>
             <div class="image-viewport">
               <img id="wagonImg" class="broadcast-img" alt="Batter Wagon Wheel Chart" src="">
@@ -561,13 +564,14 @@
           <!-- Right: Detailed Sector Data & Insights -->
           <div class="sector-data-card">
             <div class="card-header">
-              <h3 class="card-title">Field Sector Run Breakdown</h3>
+              <h3 class="card-title">Field Sector Run & Dismissal Breakdown</h3>
             </div>
             <div class="card-body">
               <div class="wagon-quick-stats">
                 <div class="stat-pill"><span class="k">Runs:</span> <strong id="wStatRuns">--</strong></div>
                 <div class="stat-pill"><span class="k">Balls:</span> <strong id="wStatBalls">--</strong></div>
                 <div class="stat-pill"><span class="k">SR:</span> <strong id="wStatSR">--</strong></div>
+                <div class="stat-pill"><span class="k">Outs:</span> <strong id="wStatOuts" style="color:#FB7185;">--</strong></div>
                 <div class="stat-pill"><span class="k">Dots:</span> <strong id="wStatDots">--%</strong></div>
                 <div class="stat-pill"><span class="k">Boundaries:</span> <strong id="wStatBnd">--%</strong></div>
               </div>
@@ -578,9 +582,11 @@
                     <tr>
                       <th>Sector</th>
                       <th>Runs</th>
-                      <th>% of Total</th>
-                      <th>4s</th>
-                      <th>6s</th>
+                      <th>% Total</th>
+                      <th>4s / 6s</th>
+                      <th>Dismissals</th>
+                      <th>Runs / Out</th>
+                      <th>Tactical Status</th>
                     </tr>
                   </thead>
                   <tbody id="wagonSectorBody">

@@ -599,6 +599,8 @@ def batter_wagon():
         'total_dots': data['total_dots'],
         'total_fours': data['total_fours'],
         'total_sixes': data['total_sixes'],
+        'total_outs': data.get('total_outs', 0),
+        'trap_sector': data.get('trap_sector'),
         'summary': summary_list,
         'dominant_sector': summary_list[0] if summary_list else None,
         'image_b64': img_b64
