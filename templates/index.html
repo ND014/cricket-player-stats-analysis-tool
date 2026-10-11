@@ -364,10 +364,13 @@
                   <label for="xrVenueSelect" class="filter-label">Stadium / Venue:</label>
                   <div class="venue-search-combo">
                     <div class="venue-search-input-wrap">
-                      <input type="text" id="xrVenueSearchInput" class="venue-search-input" placeholder="Type to search stadium..." autocomplete="off">
-                      <button type="button" id="xrVenueSearchClearBtn" class="venue-clear-btn" title="Clear search" style="display: none;">✕</button>
+                      <input type="text" id="xrVenueSearchInput" class="venue-search-input"
+                        placeholder="Type to search stadium..." autocomplete="off">
+                      <button type="button" id="xrVenueSearchClearBtn" class="venue-clear-btn" title="Clear search"
+                        style="display: none;">✕</button>
                     </div>
-                    <button type="button" id="xrVenueSearchBtn" class="venue-search-btn" title="Search and apply stadium filter">
+                    <button type="button" id="xrVenueSearchBtn" class="venue-search-btn"
+                      title="Search and apply stadium filter">
                       <span>🔍 Search</span>
                     </button>
                     <select id="xrVenueSelect" class="custom-select filter-select">
@@ -779,30 +782,6 @@
                 <option value="ALL">All Batters</option>
                 <option value="RHB">vs Right-Hand Bat (RHB)</option>
                 <option value="LHB">vs Left-Hand Bat (LHB)</option>
-              </select>
-            </div>
-
-            <!-- Quick Duel Presets Dropdown -->
-            <div class="cockpit-control-group">
-              <label for="comparePresetSelect" class="control-label">Quick Duel Presets:</label>
-              <select id="comparePresetSelect" class="cockpit-select">
-                <option value="">⚡ Load Preset Matchup...</option>
-                <option value="kohli_sandeep" data-p1="Virat Kohli" data-p2="Sandeep Sharma" data-mode="bat_vs_bowl">
-                  Kohli vs Sandeep Sharma (Head-to-Head Duel)</option>
-                <option value="kohli_gill_raf" data-p1="Virat Kohli" data-p2="Shubman Gill" data-mode="bat_vs_bat"
-                  data-archetype="RAF">Kohli vs Gill (vs Right-Arm Fast)</option>
-                <option value="kohli_gill_laf" data-p1="Virat Kohli" data-p2="Shubman Gill" data-mode="bat_vs_bat"
-                  data-archetype="LAF">Kohli vs Gill (vs Left-Arm Fast)</option>
-                <option value="kohli_rohit" data-p1="Virat Kohli" data-p2="Rohit Sharma" data-mode="bat_vs_bat"
-                  data-archetype="ALL">Kohli vs Rohit (Batter Benchmark)</option>
-                <option value="bumrah_rashid_all" data-p1="Jasprit Bumrah" data-p2="Rashid Khan"
-                  data-mode="bowl_vs_bowl" data-hand="ALL">Bumrah vs Rashid (All Batters)</option>
-                <option value="bumrah_rashid_lhb" data-p1="Jasprit Bumrah" data-p2="Rashid Khan"
-                  data-mode="bowl_vs_bowl" data-hand="LHB">Bumrah vs Rashid (vs LHB)</option>
-                <option value="pooran_hasaranga" data-p1="Nicholas Pooran" data-p2="Wanindu Hasaranga"
-                  data-mode="bat_vs_bowl">Pooran vs Hasaranga (Wrist Spin Matchup)</option>
-                <option value="russell_klaasen" data-p1="Andre Russell" data-p2="Heinrich Klaasen"
-                  data-mode="bat_vs_bat" data-archetype="ALL">Russell vs Klaasen (Finisher Comparison)</option>
               </select>
             </div>
           </div>
