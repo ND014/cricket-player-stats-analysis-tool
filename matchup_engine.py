@@ -80,7 +80,7 @@ BOWLER_ARCHETYPES = {
     'NL McCullum': 'OFF_SPIN',
 
     # Right-Arm Wrist Spin (WRIST_SPIN)
-    'YS Chahal': 'WRIST_SPIN', 'Rashid Khan': 'WRIST_SPIN', 'R Bishnoi': 'WRIST_SPIN',
+    'YS Chahal': 'WRIST_SPIN', 'Rashid Khan': 'WRIST_SPIN', 'AU Rashid': 'WRIST_SPIN', 'R Bishnoi': 'WRIST_SPIN',
     'PP Chawla': 'WRIST_SPIN', 'CV Varun': 'WRIST_SPIN', 'Suyash Sharma': 'WRIST_SPIN',
     'Karn Sharma': 'WRIST_SPIN', 'M Markande': 'WRIST_SPIN', 'A Zampa': 'WRIST_SPIN',
     'Wanindu Hasaranga': 'WRIST_SPIN', 'Amit Mishra': 'WRIST_SPIN', 'Imran Tahir': 'WRIST_SPIN',
@@ -229,6 +229,7 @@ PLAYER_ALIASES = {
     'nicholas pooran': 'N Pooran', 'pooran': 'N Pooran', 'n pooran': 'N Pooran',
     'andre russell': 'AD Russell', 'russell': 'AD Russell', 'ad russell': 'AD Russell',
     'rashid khan': 'Rashid Khan', 'rashid': 'Rashid Khan',
+    'adil rashid': 'AU Rashid', 'au rashid': 'AU Rashid', 'adil': 'AU Rashid',
     'glenn maxwell': 'GJ Maxwell', 'maxwell': 'GJ Maxwell', 'maxi': 'GJ Maxwell',
     'jos buttler': 'JC Buttler', 'buttler': 'JC Buttler', 'jc buttler': 'JC Buttler',
     'mitchell starc': 'MA Starc', 'starc': 'MA Starc', 'ma starc': 'MA Starc',
@@ -322,7 +323,8 @@ INDIAN_PLAYER_METADATA = {
     'Babar Azam': {'role': 'Batter', 'position': 'TOP_ORDER', 'hand': 'RHB', 'market_price': 12.0, 'public_label': 'Prolific Global T20 Anchor'},
     'TH David': {'role': 'Batter', 'position': 'FINISHER', 'hand': 'RHB', 'market_price': 8.25, 'public_label': 'High-Caliber Global Death Slogger'},
     'NL McCullum': {'role': 'All-Rounder', 'position': 'FINISHER', 'hand': 'RHB', 'bowling_arm': 'OFF_SPIN', 'market_price': 1.0, 'public_label': 'Kiwi Bowling All-Rounder'},
-    'SP Narine': {'role': 'All-Rounder', 'position': 'TOP_ORDER', 'hand': 'LHB', 'bowling_arm': 'OFF_SPIN', 'market_price': 12.0, 'public_label': 'Dual-Threat MVP Opener & Spin Squeezer'}
+    'SP Narine': {'role': 'All-Rounder', 'position': 'TOP_ORDER', 'hand': 'LHB', 'bowling_arm': 'OFF_SPIN', 'market_price': 12.0, 'public_label': 'Dual-Threat MVP Opener & Spin Squeezer'},
+    'AU Rashid': {'role': 'Bowler', 'position': 'TAILENDER', 'hand': 'RHB', 'bowling_arm': 'WRIST_SPIN', 'market_price': 8.5, 'public_label': 'England Premier World Cup Winning Leg-Spinner'}
 }
 
 
@@ -390,18 +392,29 @@ def resolve_player_name(query: str) -> str:
     if not q:
         return query
     
-    # 1. Curated hardcoded aliases (Always highest priority)
+    # 1. Curated hardcoded aliases (Exact match has highest priority)
     if q in PLAYER_ALIASES:
         return PLAYER_ALIASES[q]
-    for alias, cric_name in PLAYER_ALIASES.items():
-        if q == alias or (len(q) > 4 and (q in alias or alias in q)):
-            return cric_name
 
-    # 2. Master player registry (Full names, expanded initials, nicknames)
+    # 2. Master player registry (Full names, expanded initials, nicknames, exact cric_name)
     reg = _load_player_registry()
     alias_map = reg.get('alias_to_cric', {})
     if q in alias_map:
         return alias_map[q]
+
+    cric_to_full = reg.get('cric_to_full', {})
+    for cric in cric_to_full:
+        if cric.lower() == q:
+            return cric
+
+    # 2.2 Curated aliases whole-token matching (e.g. 'kohli', 'bumrah', 'maxi')
+    # Prevent 1-word aliases like 'rashid' or 'rahul' from hijacking distinct multi-word names like 'adil rashid' or 'rahul tripathi'
+    for alias, cric_name in PLAYER_ALIASES.items():
+        if q == alias:
+            return cric_name
+        # If user query is a sub-word of an alias, e.g. "surya" in "suryakumar yadav"
+        if len(q) >= 4 and q in alias.split():
+            return cric_name
 
     # 2.5 Phonetic / Transliteration matching (oo <-> u, ee <-> i, w <-> v)
     q_norm = re.sub(r'([a-z])\1+', r'\1', q.replace('w', 'v').replace('oo', 'u').replace('ee', 'i'))
