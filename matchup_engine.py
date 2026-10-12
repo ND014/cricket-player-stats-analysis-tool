@@ -1836,17 +1836,21 @@ def find_cost_effective_alternatives(cric_name: str, role: str = 'Batter', top_n
         t_row = df_t[df_t['phase'] == dominant_phase].iloc[0]
 
         q_cands = """
+            WITH ipl_counts AS (
+                SELECT striker, COUNT(*) as ipl_b FROM deliveries WHERE tournament = 'IPL' GROUP BY striker
+            )
             SELECT 
                 d.striker as player,
                 COUNT(*) as balls,
                 ROUND(SUM(d.runs_off_bat)*100.0/COUNT(*), 1) as sr,
                 ROUND(SUM(d.is_dot)*100.0/COUNT(*), 1) as dot_pct,
                 ROUND(SUM(d.is_boundary)*100.0/COUNT(*), 1) as bnd_pct,
-                (SELECT COUNT(*) FROM deliveries WHERE striker = d.striker AND tournament = 'IPL') as ipl_balls
+                COALESCE(ic.ipl_b, 0) as ipl_balls
             FROM deliveries d
+            LEFT JOIN ipl_counts ic ON d.striker = ic.striker
             WHERE d.tournament = 'SMAT' AND d.phase = ? AND d.striker != ?
             GROUP BY d.striker
-            HAVING balls >= 100 AND ipl_balls < 150
+            HAVING balls >= 100 AND COALESCE(ic.ipl_b, 0) < 150
             ORDER BY sr DESC
             LIMIT ?
         """
@@ -1886,17 +1890,21 @@ def find_cost_effective_alternatives(cric_name: str, role: str = 'Batter', top_n
         t_row = df_t[df_t['phase'] == dominant_phase].iloc[0]
 
         q_cands = """
+            WITH ipl_counts AS (
+                SELECT bowler, COUNT(*) as ipl_b FROM deliveries WHERE tournament = 'IPL' GROUP BY bowler
+            )
             SELECT 
                 d.bowler as player,
                 COUNT(*) as balls,
                 ROUND(SUM(d.total_runs_conceded)*6.0/COUNT(*), 2) as econ,
                 ROUND(SUM(d.is_dot)*100.0/COUNT(*), 1) as dot_pct,
                 SUM(d.is_wicket) as wkts,
-                (SELECT COUNT(*) FROM deliveries WHERE bowler = d.bowler AND tournament = 'IPL') as ipl_balls
+                COALESCE(ic.ipl_b, 0) as ipl_balls
             FROM deliveries d
+            LEFT JOIN ipl_counts ic ON d.bowler = ic.bowler
             WHERE d.tournament = 'SMAT' AND d.phase = ? AND d.bowler != ?
             GROUP BY d.bowler
-            HAVING balls >= 80 AND ipl_balls < 200
+            HAVING balls >= 80 AND COALESCE(ic.ipl_b, 0) < 200
             ORDER BY econ ASC
             LIMIT ?
         """
